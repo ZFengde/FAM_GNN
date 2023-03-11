@@ -59,7 +59,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_id', type=str, default='Turtlebot-v3') # 'Turtlebot-v2''Safexp-PointGoal1-v0'
-    parser.add_argument('--algo', type=str, default='FAM_GNN_PPO') 
+    parser.add_argument('--algo', type=str, default='PPO') 
     parser.add_argument('--policy_type', type=str, default='MlpPolicy')
     parser.add_argument('--n_envs', type=int, default=3)
     parser.add_argument('--iter_num', type=int, default=500) # Total_timestep = iter_num * n_envs * n_steps, here is 200 * 3 * 20480 = 1.2e7

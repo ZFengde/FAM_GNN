@@ -97,9 +97,9 @@ class TSFuzzyLayer(nn.Module): # -> attention, truth_value
         self.x2_m = gaussmf(90, 30) # mean and sigma
         self.x2_l = gaussmf(180, 30) # mean and sigma
 
-class FuzzyRGCNLayer(nn.Module): # using antecedants to update node features
+class FAM_GNNLayer(nn.Module): # using antecedants to update node features
     def __init__(self, in_feat, out_feat, num_rels):
-        super(FuzzyRGCNLayer, self).__init__()
+        super(FAM_GNNLayer, self).__init__()
         self.in_feat = in_feat
         self.out_feat = out_feat
         self.num_rels = num_rels
@@ -155,17 +155,17 @@ class FuzzyRGCNLayer(nn.Module): # using antecedants to update node features
 
             return h
 
-class FuzzyRGCN(nn.Module):
+class FAM_GNN(nn.Module):
     def __init__(self, input_dim, h_dim, out_dim, num_rels):
-        super(FuzzyRGCN, self).__init__()
+        super(FAM_GNN, self).__init__()
         self.input_dim = input_dim
         self.h_dim = h_dim
         self.out_dim = out_dim
         self.num_rels = num_rels
 
         self.ante_layer = TSFuzzyLayer()
-        self.layer1 = FuzzyRGCNLayer(self.input_dim, self.h_dim, self.num_rels)
-        self.layer2 = FuzzyRGCNLayer(self.h_dim, self.out_dim, self.num_rels,)
+        self.layer1 = FAM_GNNLayer(self.input_dim, self.h_dim, self.num_rels)
+        self.layer2 = FAM_GNNLayer(self.h_dim, self.out_dim, self.num_rels,)
 
     def forward(self, g, feat, etypes, ntypes, edge_sg_ID):
         

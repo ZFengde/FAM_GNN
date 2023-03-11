@@ -17,7 +17,7 @@ import torch as th
 from torch import nn
 from torch.nn import functional as F
 
-from fam_gnn.common.fuzzyrgcn import FuzzyRGCN, obs_to_feat, graph_and_types
+from fam_gnn.common.fam_gnn import FAM_GNN, obs_to_feat, graph_and_types
 from stable_baselines3.common.distributions import (
     BernoulliDistribution,
     CategoricalDistribution,
@@ -125,7 +125,7 @@ class ActorCriticPolicy(BasePolicy):
             self.gnn_out_dim = 8
             self.node_num = self.obstacle_num + 2
             self.features_dim = self.gnn_out_dim * self.node_num
-            self.gnn = FuzzyRGCN(input_dim=self.gnn_input_dim, 
+            self.gnn = FAM_GNN(input_dim=self.gnn_input_dim, 
                                 h_dim=self.gnn_h_dim, 
                                 out_dim=self.gnn_out_dim, 
                                 num_rels=9).to(device)
