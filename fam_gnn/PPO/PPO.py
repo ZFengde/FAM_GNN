@@ -12,7 +12,7 @@ from fam_gnn.common.policies import BasePolicy, ActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean
 
-class PPO_Lagrangian(OnPolicyAlgorithm):
+class PPO(OnPolicyAlgorithm):
 
     policy_aliases: Dict[str, Type[BasePolicy]] = {
         "MlpPolicy": ActorCriticPolicy,
@@ -37,7 +37,6 @@ class PPO_Lagrangian(OnPolicyAlgorithm):
         net_arch_dim: int = 64,
         obstacle_num: int = 5,
         use_sde: bool = False,
-        use_gnn: bool = True,
         sde_sample_freq: int = -1,
         target_kl: Optional[float] = None,
         tensorboard_log: Optional[str] = None,
@@ -62,7 +61,6 @@ class PPO_Lagrangian(OnPolicyAlgorithm):
             net_arch_dim=net_arch_dim,
             obstacle_num=obstacle_num,
             use_sde=use_sde,
-            use_gnn=use_gnn,
             sde_sample_freq=sde_sample_freq,
             tensorboard_log=tensorboard_log,
             policy_kwargs=policy_kwargs,
@@ -112,7 +110,6 @@ class PPO_Lagrangian(OnPolicyAlgorithm):
         self.target_kl = target_kl
         self.net_arch_dim = net_arch_dim
         self.obstacle_num = obstacle_num
-        self.use_gnn = use_gnn
 
         if _init_setup_model:
             self._setup_model()
@@ -265,10 +262,10 @@ class PPO_Lagrangian(OnPolicyAlgorithm):
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "PPO_Lagrangian",
+        tb_log_name: str = "PPO",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
-    ) -> "PPO_Lagrangian":
+    ) -> "PPO":
 
         return super().learn(
             total_timesteps=self.env.num_envs * self.n_steps,

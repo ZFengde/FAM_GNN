@@ -12,7 +12,7 @@ from fam_gnn.common.policies import BasePolicy, ActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean
 
-class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
+class FAM_GNN_PPO(OnPolicyAlgorithm):
 
     policy_aliases: Dict[str, Type[BasePolicy]] = {
         "MlpPolicy": ActorCriticPolicy,
@@ -37,7 +37,6 @@ class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
         net_arch_dim: int = 64,
         obstacle_num: int = 5,
         use_sde: bool = False,
-        use_gnn: bool = True,
         sde_sample_freq: int = -1,
         target_kl: Optional[float] = None,
         tensorboard_log: Optional[str] = None,
@@ -46,6 +45,7 @@ class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
         verbose: int = 0,
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
+        gnn_type: str = 'fam_gnn',
         _init_setup_model: bool = True,
     ):
 
@@ -62,7 +62,6 @@ class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
             net_arch_dim=net_arch_dim,
             obstacle_num=obstacle_num,
             use_sde=use_sde,
-            use_gnn=use_gnn,
             sde_sample_freq=sde_sample_freq,
             tensorboard_log=tensorboard_log,
             policy_kwargs=policy_kwargs,
@@ -70,6 +69,7 @@ class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
             device=device,
             create_eval_env=create_eval_env,
             seed=seed,
+            gnn_type=gnn_type,
             _init_setup_model=False,
             supported_action_spaces=(
                 spaces.Box,
@@ -112,7 +112,6 @@ class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
         self.target_kl = target_kl
         self.net_arch_dim = net_arch_dim
         self.obstacle_num = obstacle_num
-        self.use_gnn = use_gnn
 
         if _init_setup_model:
             self._setup_model()
@@ -248,10 +247,8 @@ class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
         self.logger.record("train/clip_fraction", np.mean(clip_fractions))
         self.logger.record("train/loss", np.mean(losses))
         self.logger.record("train/explained_variance", explained_var)
-        self.logger.record("train/penalty_lambda", self.policy.penalty_lambda.item())
         if hasattr(self.policy, "log_std"):
             self.logger.record("train/std", th.exp(self.policy.log_std).mean().item())
-
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/clip_range", clip_range)
         if self.clip_range_vf is not None:
@@ -266,10 +263,10 @@ class FuzzyGNN_PPO_Lagrangian(OnPolicyAlgorithm):
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "FuzzyGNN_PPO_Lagrangian",
+        tb_log_name: str = "FAM_GNN_PPO",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
-    ) -> "FuzzyGNN_PPO_Lagrangian":
+    ) -> "FAM_GNN_PPO":
 
         return super().learn(
             total_timesteps=self.env.num_envs * self.n_steps,

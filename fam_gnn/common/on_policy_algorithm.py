@@ -33,7 +33,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         net_arch_dim: int,
         obstacle_num: int,
         use_sde: bool,
-        use_gnn: bool,
         sde_sample_freq: int,
         tensorboard_log: Optional[str] = None,
         create_eval_env: bool = False,
@@ -42,6 +41,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         verbose: int = 0,
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
+        gnn_type: str = None,
         _init_setup_model: bool = True,
         supported_action_spaces: Optional[Tuple[gym.spaces.Space, ...]] = None,
     ):
@@ -70,7 +70,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
         self.max_grad_norm = max_grad_norm
-        self.use_gnn = use_gnn
+        self.gnn_type = gnn_type
         self.rollout_buffer = None
 
         self.iteration = 0
@@ -100,7 +100,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             use_sde=self.use_sde,
             net_arch_dim=self.net_arch_dim,
             obstacle_num=self.obstacle_num,
-            use_gnn=self.use_gnn,
+            gnn_type=self.gnn_type,
             **self.policy_kwargs  # pytype:disable=not-instantiable
         )
         self.policy = self.policy.to(self.device)

@@ -48,7 +48,6 @@ class ActorCriticPolicy(BasePolicy):
         activation_fn: Type[nn.Module] = nn.Tanh,
         ortho_init: bool = True,
         use_sde: bool = False,
-        use_gnn: bool = False,
         net_arch_dim: int = 64,
         obstacle_num: int = 5,
         log_std_init: float = 0.0,
@@ -61,6 +60,7 @@ class ActorCriticPolicy(BasePolicy):
         normalize_images: bool = True,
         optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        gnn_type: str = None
     ):
 
         if optimizer_kwargs is None:
@@ -90,6 +90,7 @@ class ActorCriticPolicy(BasePolicy):
 
         self.normalize_images = normalize_images
         self.log_std_init = log_std_init
+        self.gnn_type = gnn_type
         dist_kwargs = None
         # Keyword arguments for gSDE distribution
         if use_sde:
@@ -104,11 +105,10 @@ class ActorCriticPolicy(BasePolicy):
             warnings.warn("sde_net_arch is deprecated and will be removed in SB3 v2.4.0.", DeprecationWarning)
 
         self.use_sde = use_sde
-        self.use_gnn = use_gnn
         self.dist_kwargs = dist_kwargs
 
         # Default network architecture, from stable-baselines
-        if self.use_gnn:
+        if self.gnn_type:
             self.net_arch = [dict(pi=[self.net_arch_dim], vf=[self.net_arch_dim])]
         else:
             self.net_arch = [dict(pi=[self.net_arch_dim, self.net_arch_dim], vf=[self.net_arch_dim, self.net_arch_dim])]
@@ -116,11 +116,10 @@ class ActorCriticPolicy(BasePolicy):
         # Action distribution
         self.action_dist = make_proba_distribution(action_space, use_sde=use_sde, dist_kwargs=dist_kwargs)
 
-        # Build lagrangian lambda term here
         device = th.device("cuda:0" if th.cuda.is_available() else "cpu")
 
         # GNN method here
-        if self.use_gnn:
+        if self.gnn_type:
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
             self.gnn_out_dim = 8
@@ -237,7 +236,7 @@ class ActorCriticPolicy(BasePolicy):
         :return: action, value and log probability of the action
         """
         # Preprocess the observation if needed
-        if self.use_gnn:
+        if self.gnn_type:
             features = self.gnn_process(obs)
         else:
             features = self.extract_features(obs) # already have non-linear in last part
@@ -298,7 +297,7 @@ class ActorCriticPolicy(BasePolicy):
             and entropy of the action distribution.
         """
         # Preprocess the observation if needed
-        if self.use_gnn:
+        if self.gnn_type:
             features = self.gnn_process(obs)
         else:
             features = self.extract_features(obs)
@@ -315,7 +314,7 @@ class ActorCriticPolicy(BasePolicy):
         :param obs:
         :return: the action distribution.
         """
-        if self.use_gnn:
+        if self.gnn_type:
             features = self.gnn_process(obs)
         else:
             features = self.extract_features(obs)
@@ -329,7 +328,7 @@ class ActorCriticPolicy(BasePolicy):
         :param obs:
         :return: the estimated values.
         """
-        if self.use_gnn:
+        if self.gnn_type:
             features = self.gnn_process(obs)
         else:
             features = self.extract_features(obs)
