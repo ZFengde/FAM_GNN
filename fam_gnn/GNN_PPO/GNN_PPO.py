@@ -12,7 +12,7 @@ from fam_gnn.common.policies import BasePolicy, ActorCriticPolicy
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean
 
-class FAM_GNN_PPO(OnPolicyAlgorithm):
+class GNN_PPO(OnPolicyAlgorithm):
 
     policy_aliases: Dict[str, Type[BasePolicy]] = {
         "MlpPolicy": ActorCriticPolicy,
@@ -263,10 +263,10 @@ class FAM_GNN_PPO(OnPolicyAlgorithm):
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "FAM_GNN_PPO",
+        tb_log_name: str = "GNN_PPO",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
-    ) -> "FAM_GNN_PPO":
+    ) -> "GNN_PPO":
 
         return super().learn(
             total_timesteps=self.env.num_envs * self.n_steps,

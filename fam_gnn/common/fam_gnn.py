@@ -98,12 +98,12 @@ class TSFuzzyLayer(nn.Module): # -> attention, truth_value
         self.x2_l = gaussmf(180, 30) # mean and sigma
 
 class FAM_GNNLayer(nn.Module): # using antecedants to update node features
-    def __init__(self, in_feat, out_feat, num_rels):
+    def __init__(self, in_feat, out_feat, num_rels, num_ntypes):
         super(FAM_GNNLayer, self).__init__()
         self.in_feat = in_feat
         self.out_feat = out_feat
         self.num_rels = num_rels
-        self.num_ntypes = 3
+        self.num_ntypes = num_ntypes
 
         # message weight and bias
         self.weight = nn.Parameter(th.Tensor(self.num_rels, self.in_feat, self.out_feat))
@@ -125,7 +125,6 @@ class FAM_GNNLayer(nn.Module): # using antecedants to update node features
         m_bias = self.m_bias[edges.data['rel_type']].unsqueeze(1) # edge_num, 1, out_feat
 
         attention = edges.data['attention'] # edge_num, batch, 1
-        # TODO, try two differnt type
         raw_msg =  th.bmm(edges.src['h'], w) + m_bias # edge_num, batch, out =  edge_num, in, out * edge_num, batch, in
         # raw_msg =  th.bmm(edges.dst['h'] - edges.src['h'], w) + m_bias # edge_num, batch, out =  edge_num, in, out * edge_num, batch, in
         msg = attention * raw_msg # edge_num, batch, out_feat = edge_num, batch, 1 * edge_num, batch, out_feat
@@ -156,16 +155,17 @@ class FAM_GNNLayer(nn.Module): # using antecedants to update node features
             return h
 
 class FAM_GNN(nn.Module):
-    def __init__(self, input_dim, h_dim, out_dim, num_rels):
+    def __init__(self, input_dim, h_dim, out_dim, num_rels, num_ntypes):
         super(FAM_GNN, self).__init__()
         self.input_dim = input_dim
         self.h_dim = h_dim
         self.out_dim = out_dim
         self.num_rels = num_rels
+        self.num_ntypes = num_ntypes
 
         self.ante_layer = TSFuzzyLayer()
-        self.layer1 = FAM_GNNLayer(self.input_dim, self.h_dim, self.num_rels)
-        self.layer2 = FAM_GNNLayer(self.h_dim, self.out_dim, self.num_rels,)
+        self.layer1 = FAM_GNNLayer(self.input_dim, self.h_dim, self.num_rels, self.num_ntypes)
+        self.layer2 = FAM_GNNLayer(self.h_dim, self.out_dim, self.num_rels, self.num_ntypes)
 
     def forward(self, g, feat, etypes, ntypes, edge_sg_ID):
         
@@ -177,6 +177,74 @@ class FAM_GNN(nn.Module):
         
         return x
 
+class FAM_GNNLayer_noatte(nn.Module): # using antecedants to update node features
+    def __init__(self, in_feat, out_feat, num_rels, num_ntypes):
+        super(FAM_GNNLayer_noatte, self).__init__()
+        self.in_feat = in_feat
+        self.out_feat = out_feat
+        self.num_rels = num_rels
+        self.num_ntypes = num_ntypes
+
+        # message weight and bias
+        self.weight = nn.Parameter(th.Tensor(self.num_rels, self.in_feat, self.out_feat))
+        self.m_bias = nn.Parameter(th.Tensor(self.num_rels, self.out_feat))
+
+        # self-loop weight and bias
+        self.loop_weight = nn.Parameter(th.Tensor(self.num_ntypes, self.in_feat, self.out_feat))
+        self.h_bias = nn.Parameter(th.Tensor(self.num_ntypes, 1, self.out_feat))
+
+        # nn.init.xavier_uniform_(self.loop_weight, gain=nn.init.calculate_gain('tanh'))
+        nn.init.xavier_uniform_(self.weight, gain=nn.init.calculate_gain('tanh'))
+        nn.init.xavier_uniform_(self.loop_weight, gain=nn.init.calculate_gain('tanh'))
+        nn.init.zeros_(self.m_bias)
+        nn.init.zeros_(self.h_bias)
+
+    def message_func(self, edges):
+        w = self.weight[edges.data['rel_type']] # edge_num, in * out
+        m_bias = self.m_bias[edges.data['rel_type']].unsqueeze(1) # edge_num, 1, out_feat
+
+        msg =  th.bmm(edges.src['h'], w) + m_bias # edge_num, batch, out =  edge_num, in, out * edge_num, batch, in
+        return {'msg': msg} # edge_num, batch, out_feat
+
+    def forward(self, g, feat, etypes, ntypes):
+        with g.local_scope(): 
+            # pass node features and etypes information
+            g.ndata['h'] = feat # node_num, batch, input_dim 
+            g.edata['rel_type'] = etypes 
+
+            # self-loop
+            loop_weight = self.loop_weight[ntypes] # node_num, input_dim, output_dim = 6, 6, 10
+            loop_bias = self.h_bias[ntypes]
+            if g.ndata['h'].dim() == 2:
+                x = g.ndata['h'].view(-1, 1, self.in_feat)
+                loop_value = th.bmm(x, loop_weight) + loop_bias
+            elif g.ndata['h'].dim() == 3:
+                loop_value = th.bmm(g.ndata['h'], loop_weight) + loop_bias
+            # message passing
+            g.update_all(self.message_func, fn.sum('msg', 'h'))
+            h = g.ndata['h'] + loop_value
+            return h
+
+class FAM_GNN_noatte(nn.Module):
+    def __init__(self, input_dim, h_dim, out_dim, num_rels, num_ntypes):
+        super(FAM_GNN_noatte, self).__init__()
+        self.input_dim = input_dim
+        self.h_dim = h_dim
+        self.out_dim = out_dim
+        self.num_rels = num_rels
+        self.num_ntypes = num_ntypes
+
+        self.layer1 = FAM_GNNLayer_noatte(self.input_dim, self.h_dim, self.num_rels, self.num_ntypes)
+        self.layer2 = FAM_GNNLayer_noatte(self.h_dim, self.out_dim, self.num_rels, self.num_ntypes)
+
+    def forward(self, g, feat, etypes, ntypes):
+        
+        # Attention mechanism
+        x = th.tanh(self.layer1(g, feat, etypes, ntypes))
+        x = th.tanh(self.layer2(g, x, etypes, ntypes)) # node_num, batch, out_dim
+        
+        return x
+       
 # generate graph, edge type and etype ID
 def graph_and_types(node_num): # -> graph, edge_types
     edge_src = []

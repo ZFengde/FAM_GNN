@@ -45,6 +45,7 @@ class PPO(OnPolicyAlgorithm):
         verbose: int = 0,
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
+        gnn_type: str = None,
         _init_setup_model: bool = True,
     ):
 
@@ -68,6 +69,7 @@ class PPO(OnPolicyAlgorithm):
             device=device,
             create_eval_env=create_eval_env,
             seed=seed,
+            gnn_type=gnn_type,
             _init_setup_model=False,
             supported_action_spaces=(
                 spaces.Box,

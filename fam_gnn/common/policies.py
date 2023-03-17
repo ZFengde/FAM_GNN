@@ -17,7 +17,6 @@ import torch as th
 from torch import nn
 from torch.nn import functional as F
 
-from fam_gnn.common.fam_gnn import FAM_GNN, obs_to_feat, graph_and_types
 from stable_baselines3.common.distributions import (
     BernoulliDistribution,
     CategoricalDistribution,
@@ -36,6 +35,9 @@ from stable_baselines3.common.torch_layers import (
 )
 from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.policies import BasePolicy
+
+from fam_gnn.common.fam_gnn import FAM_GNN, FAM_GNN_noatte, obs_to_feat, graph_and_types
+from fam_gnn.common.gnn_compare import Rel_GCN, GAT, AGNN
 
 class ActorCriticPolicy(BasePolicy):
 
@@ -115,26 +117,8 @@ class ActorCriticPolicy(BasePolicy):
 
         # Action distribution
         self.action_dist = make_proba_distribution(action_space, use_sde=use_sde, dist_kwargs=dist_kwargs)
-
-        device = th.device("cuda:0" if th.cuda.is_available() else "cpu")
-
-        # GNN method here
-        if self.gnn_type:
-            self.gnn_input_dim = 6
-            self.gnn_h_dim = 10
-            self.gnn_out_dim = 8
-            self.node_num = self.obstacle_num + 2
-            self.features_dim = self.gnn_out_dim * self.node_num
-            self.gnn = FAM_GNN(input_dim=self.gnn_input_dim, 
-                                h_dim=self.gnn_h_dim, 
-                                out_dim=self.gnn_out_dim, 
-                                num_rels=9).to(device)
-            # manually input number of obstacles here
-            self.g, self.edge_types, self.node_types, self.edge_sg_ID = graph_and_types(node_num=self.node_num)
-            self.g = self.g.to(device)
-            self.edge_types = self.edge_types.to(device)
-            self.node_types = self.node_types.to(device)
-
+        
+        self._build_gnn()
         self._build(lr_schedule)
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
@@ -226,6 +210,70 @@ class ActorCriticPolicy(BasePolicy):
         # Setup optimizer with initial learning rate
         # TODO, need to watch what parameters are included
         self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
+
+    def _build_gnn(self):
+        device = th.device("cuda:0" if th.cuda.is_available() else "cpu")
+
+        # choose which GNN method to be used here
+        if self.gnn_type == 'fam_gnn':
+            self.gnn_input_dim = 6
+            self.gnn_h_dim = 10
+            self.gnn_out_dim = 8
+            self.num_rels = 4
+            self.num_ntypes = 3
+            self.gnn = FAM_GNN(input_dim=self.gnn_input_dim, 
+                                h_dim=self.gnn_h_dim, 
+                                out_dim=self.gnn_out_dim, 
+                                num_rels=self.num_rels,
+                                num_ntypes=self.num_ntypes).to(device) 
+            
+        if self.gnn_type == 'fam_gnn_noatte':
+            self.gnn_input_dim = 6
+            self.gnn_h_dim = 10
+            self.gnn_out_dim = 8
+            self.num_rels = 4
+            self.num_ntypes = 3
+            self.gnn = FAM_GNN_noatte(input_dim=self.gnn_input_dim, 
+                                    h_dim=self.gnn_h_dim, 
+                                    out_dim=self.gnn_out_dim, 
+                                    num_rels=self.num_rels,
+                                    num_ntypes=self.num_ntypes).to(device) 
+        
+        elif self.gnn_type == 'gat':
+            self.gnn_input_dim = 6
+            self.gnn_h_dim = 8
+            self.gnn_out_dim = 8
+            self.num_heads = 3
+            self.gnn = GAT(input_dim=self.gnn_input_dim, 
+                            h_dim=self.gnn_h_dim, 
+                            out_dim=self.gnn_out_dim, 
+                            num_heads=self.num_heads).to(device)
+            
+        elif self.gnn_type == 'rel_gcn':
+            self.gnn_input_dim = 6
+            self.gnn_h_dim = 10
+            self.gnn_out_dim = 8
+            self.num_rels = 4
+            self.gnn = Rel_GCN(input_dim=self.gnn_input_dim, 
+                                h_dim=self.gnn_h_dim, 
+                                out_dim=self.gnn_out_dim, 
+                                num_rels=self.num_rels).to(device)
+            
+        elif self.gnn_type == 'agnn_conv':
+            self.gnn_input_dim = 6
+            self.gnn_out_dim = 6
+            self.gnn = AGNN().to(device)
+            
+        # manually input number of obstacles here
+        if self.gnn_type:
+            self.node_num = self.obstacle_num + 2
+            self.features_dim = self.gnn_out_dim * self.node_num
+            self.g, self.edge_types, self.node_types, self.edge_sg_ID = graph_and_types(node_num=self.node_num)
+            self.g = self.g.to(device)
+            self.edge_types = self.edge_types.to(device)
+            self.node_types = self.node_types.to(device)
+        
+        return True
 
     def forward(self, obs: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         """
@@ -339,9 +387,27 @@ class ActorCriticPolicy(BasePolicy):
     def gnn_process(self, obs): # 113, 4*113
         if obs.dim() == 1:
             obs = obs.unsqueeze(0)
-        
         node_infos = th.transpose(obs_to_feat(obs).to(self.device), 0, 1) # batch * node * dim = 7 * 9 * 6
-        features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.edge_sg_ID), 0, 1) # batch * num_node * feat_size
-        output = features.reshape(features.shape[0], -1)
+
+        # fam_gnn, gat, rel_gcn, gated_gcn, hgt_conv
+        if self.gnn_type == 'fam_gnn':
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.edge_sg_ID), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1)
+        
+        elif self.gnn_type == 'fam_gnn_noatte':
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1)
+
+        elif self.gnn_type == 'gat':
+            features = th.transpose(self.gnn(self.g, node_infos.float()), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1) # 3, 48
+
+        elif self.gnn_type == 'rel_gcn':
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1) # 3, 48
+            
+        elif self.gnn_type == 'agnn_conv':
+            features = th.transpose(self.gnn(self.g, node_infos.float()), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1)
 
         return output
