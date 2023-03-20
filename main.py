@@ -75,7 +75,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=5)
-    parser.add_argument('--gnn_type', type=str, default='fam_gnn_noatte') # fam_gnn, gat, rel_gcn, gated_gcn, hgt_conv
+    parser.add_argument('--gnn_type', type=str, default='fam_gnn') # fam_gnn, fam_gnn_noatte, gat, rel_gcn, agnn_conv
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--early_stop', action='store_true') # if no action, or said default if False, otherwise it's True
     args = parser.parse_args()
