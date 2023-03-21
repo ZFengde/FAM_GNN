@@ -4,7 +4,8 @@ import dgl
 import dgl.function as fn
 import numpy as np
 import time
-from dgl.nn import GATConv, AGNNConv
+from dgl.nn import GATConv
+from .fam_gnn import TSFuzzyLayer
 
 class RelGraphConv(nn.Module):
     def __init__(self, in_feat, out_feat, num_rels):
@@ -93,6 +94,7 @@ class GAT(nn.Module):
     def forward(self, g, feat): # 6, 20480, 6
         x = th.tanh(self.layer1(g, feat)).flatten(2) # 6, 3, 6 --> 6, 3, 24
         x = th.mean(th.tanh(self.layer2(g, x)), dim=2) # 6, 3, 24 --> 6, 3, 24
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
         return x
     
 class Rel_GCN(nn.Module):
@@ -109,6 +111,7 @@ class Rel_GCN(nn.Module):
     def forward(self, g, feat, etypes):
         x = th.tanh(self.layer1(g, feat, etypes))
         x = th.tanh(self.layer2(g, x, etypes)) # node_num, batch, out_dim
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
         return x
 
 class FAM_GAT(nn.Module):
@@ -125,6 +128,7 @@ class FAM_GAT(nn.Module):
     def forward(self, g, feat, attention): # 6, 20480, 6
         x = th.tanh(self.layer1(g, feat)).flatten(2) # 6, 3, 6 --> 6, 3, 24
         x = th.mean(th.tanh(self.layer2(g, x)), dim=2) # 6, 3, 24 --> 6, 3, 24
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
         return x
     
 class FAM_Rel_GCN(nn.Module):
@@ -135,13 +139,15 @@ class FAM_Rel_GCN(nn.Module):
         self.out_dim = out_dim
         self.num_rels = num_rels # num_etype
 
-        self.layer1 = RelGraphConv(self.input_dim, self.h_dim, self.num_rels)
-        self.layer2 = RelGraphConv(self.h_dim, self.out_dim, self.num_rels)
+        self.fam_layer = TSFuzzyLayer()
+        self.layer1 = FAM_RelGraphConv(self.input_dim, self.h_dim, self.num_rels)
+        self.layer2 = FAM_RelGraphConv(self.h_dim, self.out_dim, self.num_rels)
 
-    def forward(self, g, feat, etypes):
-        attention = 0
+    def forward(self, g, feat, etypes, edge_sg_ID):
+        attention = self.fam_layer(g, feat, edge_sg_ID) 
         x = th.tanh(self.layer1(g, feat, etypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, attention)) # node_num, batch, out_dim
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
         return x   
      
 # g = dgl.graph(([0,1,2,3,2,5], [1,2,3,4,5,0]))

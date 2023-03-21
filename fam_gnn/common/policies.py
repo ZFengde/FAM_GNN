@@ -37,7 +37,7 @@ from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.policies import BasePolicy
 
 from fam_gnn.common.fam_gnn import FAM_GNN, FAM_GNN_noatte, obs_to_feat, graph_and_types
-from fam_gnn.common.gnn_compare import Rel_GCN, GAT
+from fam_gnn.common.gnn_compare import GAT, Rel_GCN, FAM_Rel_GCN
 
 class ActorCriticPolicy(BasePolicy):
 
@@ -259,10 +259,19 @@ class ActorCriticPolicy(BasePolicy):
                                 out_dim=self.gnn_out_dim, 
                                 num_rels=self.num_rels).to(device)
             
+        elif self.gnn_type == 'fam_rel_gcn':
+            self.gnn_input_dim = 6
+            self.gnn_h_dim = 10
+            self.gnn_out_dim = 8
+            self.num_rels = 4
+            self.gnn = FAM_Rel_GCN(input_dim=self.gnn_input_dim, 
+                                    h_dim=self.gnn_h_dim, 
+                                    out_dim=self.gnn_out_dim, 
+                                    num_rels=self.num_rels).to(device)
+            
         # manually input number of obstacles here
         if self.gnn_type:
             self.node_num = self.obstacle_num + 2
-            # self.features_dim = self.gnn_out_dim * self.node_num
             self.features_dim = self.gnn_out_dim * 3 # for generalisation
             self.g, self.edge_types, self.node_types, self.edge_sg_ID = graph_and_types(node_num=self.node_num)
             self.g = self.g.to(device)
@@ -401,9 +410,9 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'rel_gcn':
             features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1) # 3, 48
-            
-        elif self.gnn_type == 'agnn_conv':
-            features = th.transpose(self.gnn(self.g, node_infos.float()), 0, 1) # batch * num_node * feat_size
-            output = features.reshape(features.shape[0], -1)
 
+        elif self.gnn_type == 'fam_rel_gcn':
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.edge_sg_ID), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1) # 3, 48
+            
         return output
