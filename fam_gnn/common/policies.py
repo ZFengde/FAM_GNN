@@ -37,7 +37,7 @@ from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.policies import BasePolicy
 
 from fam_gnn.common.fam_gnn import FAM_GNN, FAM_GNN_noatte, obs_to_feat, graph_and_types
-from fam_gnn.common.gnn_compare import Rel_GCN, GAT, AGNN
+from fam_gnn.common.gnn_compare import Rel_GCN, GAT
 
 class ActorCriticPolicy(BasePolicy):
 
@@ -259,15 +259,11 @@ class ActorCriticPolicy(BasePolicy):
                                 out_dim=self.gnn_out_dim, 
                                 num_rels=self.num_rels).to(device)
             
-        elif self.gnn_type == 'agnn_conv':
-            self.gnn_input_dim = 6
-            self.gnn_out_dim = 6
-            self.gnn = AGNN().to(device)
-            
         # manually input number of obstacles here
         if self.gnn_type:
             self.node_num = self.obstacle_num + 2
-            self.features_dim = self.gnn_out_dim * self.node_num
+            # self.features_dim = self.gnn_out_dim * self.node_num
+            self.features_dim = self.gnn_out_dim * 3 # for generalisation
             self.g, self.edge_types, self.node_types, self.edge_sg_ID = graph_and_types(node_num=self.node_num)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)

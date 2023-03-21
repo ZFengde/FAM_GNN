@@ -40,7 +40,7 @@ def main(
 	else:
 		env_kwargs = None
 
-	env = make_vec_env(env_id, n_envs=n_envs, seed=seed, vec_env_cls=SubprocVecEnv, env_kwargs=env_kwargs)
+	env = make_vec_env(env_id, n_envs=n_envs, vec_env_cls=SubprocVecEnv, env_kwargs=env_kwargs)
 	# make experiment directory
 	logdir = f"{env_id}+n_obstalces={obstacle_num}/{log_name}/logs/{int(time.time())}/"
 	modeldir = f"{env_id}+n_obstalces={obstacle_num}/{log_name}/models/{int(time.time())}/"
@@ -58,6 +58,7 @@ def main(
 				net_arch_dim=net_arch_dim, 
 				obstacle_num=obstacle_num, 
 				gnn_type=gnn_which, 
+				seed=seed,
 				target_kl=target_kl)
 
 	for i in range(iter_num):
@@ -75,11 +76,10 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=5)
-    parser.add_argument('--gnn_type', type=str, default='fam_gnn') # fam_gnn, fam_gnn_noatte, gat, rel_gcn, agnn_conv
+    parser.add_argument('--gnn_type', type=str, default='fam_gnn') # fam_gnn, fam_gnn_noatte, gat, rel_gcn
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--early_stop', action='store_true') # if no action, or said default if False, otherwise it's True
     args = parser.parse_args()
-    # args.early_stop = True
     
     main(
 	    args.env_id, 
