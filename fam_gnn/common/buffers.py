@@ -25,8 +25,7 @@ class RolloutBufferSamples(NamedTuple):
     old_log_prob: th.Tensor
     advantages: th.Tensor
     returns: th.Tensor
-    t_1_observations: th.Tensor
-    t_2_observations: th.Tensor
+    
     
 class Temp_RolloutBufferSamples(NamedTuple):
     observations: th.Tensor
@@ -35,7 +34,8 @@ class Temp_RolloutBufferSamples(NamedTuple):
     old_log_prob: th.Tensor
     advantages: th.Tensor
     returns: th.Tensor
-
+    t_1_observations: th.Tensor
+    t_2_observations: th.Tensor
 
 class BaseBuffer(ABC):
     """
