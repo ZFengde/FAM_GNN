@@ -62,7 +62,8 @@ class ActorCriticPolicy(BasePolicy):
         normalize_images: bool = True,
         optimizer_class: Type[th.optim.Optimizer] = th.optim.Adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
-        gnn_type: str = None
+        gnn_type: str = None,
+        use_temp: bool = False
     ):
 
         if optimizer_kwargs is None:
@@ -93,6 +94,9 @@ class ActorCriticPolicy(BasePolicy):
         self.normalize_images = normalize_images
         self.log_std_init = log_std_init
         self.gnn_type = gnn_type
+
+        self.use_temp = use_temp
+
         dist_kwargs = None
         # Keyword arguments for gSDE distribution
         if use_sde:
