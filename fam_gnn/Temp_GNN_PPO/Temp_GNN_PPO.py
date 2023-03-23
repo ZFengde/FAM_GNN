@@ -7,20 +7,20 @@ from gym import spaces
 from torch.nn import functional as F
 
 from fam_gnn.common.temp_on_policy_algorithm import Temp_OnPolicyAlgorithm
-from fam_gnn.common.policies import BasePolicy, ActorCriticPolicy
+from fam_gnn.common.policies import BasePolicy, Temp_ActorCriticPolicy
 
 from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedule
 from stable_baselines3.common.utils import explained_variance, get_schedule_fn, safe_mean
 
-class ST_GNN_PPO(Temp_OnPolicyAlgorithm):
+class Temp_GNN_PPO(Temp_OnPolicyAlgorithm):
 
     policy_aliases: Dict[str, Type[BasePolicy]] = {
-        "MlpPolicy": ActorCriticPolicy,
+        "MlpPolicy": Temp_ActorCriticPolicy,
     }
 
     def __init__(
         self,
-        policy: Union[str, Type[ActorCriticPolicy]],
+        policy: Union[str, Type[Temp_ActorCriticPolicy]],
         env: Union[GymEnv, str],
         learning_rate: Union[float, Schedule] = 3e-4,
         n_steps: int = 20480,
@@ -266,10 +266,10 @@ class ST_GNN_PPO(Temp_OnPolicyAlgorithm):
         eval_env: Optional[GymEnv] = None,
         eval_freq: int = -1,
         n_eval_episodes: int = 5,
-        tb_log_name: str = "ST_GNN_PPO",
+        tb_log_name: str = "Temp_GNN_PPO",
         eval_log_path: Optional[str] = None,
         reset_num_timesteps: bool = True,
-    ) -> "ST_GNN_PPO":
+    ) -> "Temp_GNN_PPO":
 
         return super().learn(
             total_timesteps=self.env.num_envs * self.n_steps,

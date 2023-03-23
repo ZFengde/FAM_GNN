@@ -278,7 +278,7 @@ class ActorCriticPolicy(BasePolicy):
         if self.gnn_type:
             self.node_num = self.obstacle_num + 2
             self.features_dim = self.gnn_out_dim * 3 # for generalisation
-            self.g, self.edge_types, self.node_types, self.edge_sg_ID = graph_and_types(node_num=self.node_num)
+            self.g, self.edge_types, self.node_types, self.robot_target_edge_ID = graph_and_types(node_num=self.node_num)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
             self.node_types = self.node_types.to(device)
@@ -401,7 +401,7 @@ class ActorCriticPolicy(BasePolicy):
 
         # fam_gnn, gat, rel_gcn, gated_gcn, hgt_conv
         if self.gnn_type == 'fam_gnn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.edge_sg_ID), 0, 1) # batch * num_node * feat_size
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1)
         
         elif self.gnn_type == 'fam_gnn_noatte':
@@ -417,7 +417,7 @@ class ActorCriticPolicy(BasePolicy):
             output = features.reshape(features.shape[0], -1) # 3, 48
 
         elif self.gnn_type == 'fam_rel_gcn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.edge_sg_ID), 0, 1) # batch * num_node * feat_size
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1) # 3, 48
             
         return output
@@ -614,12 +614,11 @@ class Temp_ActorCriticPolicy(BasePolicy):
                                 num_rels=self.num_rels,
                                 num_ntypes=self.num_ntypes).to(device) 
             
-            
         # manually input number of obstacles here
         if self.gnn_type:
-            self.node_num = self.obstacle_num + 2
+            self.node_num_pertime = self.obstacle_num + 2
             self.features_dim = self.gnn_out_dim * 3 # for generalisation
-            self.g, self.edge_types, self.node_types, self.edge_sg_ID = graph_and_types(node_num=self.node_num)
+            self.g, self.edge_types, self.node_types, self.robot_target_edge_ID = graph_and_types(node_num=self.node_num_pertime)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
             self.node_types = self.node_types.to(device)
@@ -742,7 +741,7 @@ class Temp_ActorCriticPolicy(BasePolicy):
 
         # fam_gnn, gat, rel_gcn, gated_gcn, hgt_conv
         if self.gnn_type == 'fam_gnn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.edge_sg_ID), 0, 1) # batch * num_node * feat_size
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1)
         
         elif self.gnn_type == 'fam_gnn_noatte':
@@ -758,7 +757,7 @@ class Temp_ActorCriticPolicy(BasePolicy):
             output = features.reshape(features.shape[0], -1) # 3, 48
 
         elif self.gnn_type == 'fam_rel_gcn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.edge_sg_ID), 0, 1) # batch * num_node * feat_size
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1) # 3, 48
             
         return output

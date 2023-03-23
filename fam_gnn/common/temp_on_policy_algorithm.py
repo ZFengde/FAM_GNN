@@ -9,7 +9,7 @@ import torch as th
 from collections import deque
 
 from fam_gnn.common.buffers import Temp_RolloutBuffer
-from fam_gnn.common.policies import ActorCriticPolicy
+from fam_gnn.common.policies import Temp_ActorCriticPolicy
 
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import BaseCallback
@@ -21,7 +21,7 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
 
     def __init__(
         self,
-        policy: Union[str, Type[ActorCriticPolicy]],
+        policy: Union[str, Type[Temp_ActorCriticPolicy]],
         env: Union[GymEnv, str],
         learning_rate: Union[float, Schedule],
         n_steps: int,

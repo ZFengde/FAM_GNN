@@ -52,15 +52,16 @@ class TSFuzzyLayer(nn.Module): # -> attention, truth_value
         attention = attention.unsqueeze(2) # edge_num, batch, 1, represent the coupling degree of the edge
 
         # Softmax the coupling according to the edge type,
-        # for i in range(len(self.edge_sg_ID)):
-        #     attention[self.edge_sg_ID[i]] = th.softmax(attention[self.edge_sg_ID[i]], dim=0)
-        attention[self.edge_sg_ID[0]] = th.softmax(attention[self.edge_sg_ID[0]], dim=0)
+        # for i in range(len(self.robot_target_edge_ID)):
+        #     attention[self.robot_target_edge_ID[i]] = th.softmax(attention[self.robot_target_edge_ID[i]], dim=0)
+        # attention[self.robot_target_edge_ID[0]] = th.softmax(attention[self.robot_target_edge_ID[0]], dim=0)
+        attention[self.robot_target_edge_ID] = 1.
         
         return {'attention': attention}
 
-    def forward(self, g, feat, edge_sg_ID):
+    def forward(self, g, feat, robot_target_edge_ID):
         g.srcdata['h'] = feat # 9, batch, input_dim 
-        self.edge_sg_ID = edge_sg_ID
+        self.robot_target_edge_ID = robot_target_edge_ID
         
         g.apply_edges(self.edge_func)
         # g.update_all(self.edge_func, fn.sum('attention', 'h'))
@@ -167,15 +168,15 @@ class FAM_GNN(nn.Module):
         self.layer1 = FAM_GNNLayer(self.input_dim, self.h_dim, self.num_rels, self.num_ntypes)
         self.layer2 = FAM_GNNLayer(self.h_dim, self.out_dim, self.num_rels, self.num_ntypes)
 
-    def forward(self, g, feat, etypes, ntypes, edge_sg_ID):
+    def forward(self, g, feat, etypes, ntypes, robot_target_edge_ID):
         
         # Attention mechanism
-        attention = self.ante_layer(g, feat, edge_sg_ID) 
+        attention = self.ante_layer(g, feat, robot_target_edge_ID) 
 
         x = th.tanh(self.layer1(g, feat, etypes, ntypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
         # here we take robot, target, and a compressed obstacle info
-        x = th.stack((x[0], x[1], th.mean(x[2:], dim=0)), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
         return x
 
 class FAM_GNNLayer_noatte(nn.Module): # using antecedants to update node features
@@ -252,7 +253,7 @@ def graph_and_types(node_num): # -> graph, edge_types
     edge_dst = []
     edge_types = []
     ID_indicator = 0
-    edge_type_ID = [[], [], [], []]
+    robot_target_edge_ID = []
 
     for i in range(node_num):
         for j in range(node_num):
@@ -269,22 +270,19 @@ def graph_and_types(node_num): # -> graph, edge_types
             # robot-target
             if (i==0 and j==1) or (i==1 and j==0):
                 edge_types.append(0)
-                edge_type_ID[0].append(ID_indicator)
+                robot_target_edge_ID.append(ID_indicator)
 
             # robot-obstacle
             elif (i==0 and 2<=j) or (2<=i and j==0):
                 edge_types.append(1)
-                edge_type_ID[1].append(ID_indicator)
 
             # target-obstacle
             elif (i==1 and 2<=j) or (2<=i and j==1):
                 edge_types.append(2)
-                edge_type_ID[2].append(ID_indicator)
 
             # obstacle-obstacle
             else:
                 edge_types.append(3)
-                edge_type_ID[3].append(ID_indicator)
             
             ID_indicator += 1
         
@@ -293,7 +291,7 @@ def graph_and_types(node_num): # -> graph, edge_types
     node_types[1] = 1
 
             # see if here could be changed to batch operation
-    return dgl.graph((edge_src, edge_dst)), th.tensor(edge_types), th.tensor(node_types, dtype=th.long), edge_type_ID
+    return dgl.graph((edge_src, edge_dst)), th.tensor(edge_types), th.tensor(node_types, dtype=th.long), th.tensor(robot_target_edge_ID)
 
 # convert raw observation into node_infos
 def obs_to_feat(obs): # -> node_infos
