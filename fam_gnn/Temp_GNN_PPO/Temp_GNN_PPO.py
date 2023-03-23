@@ -165,8 +165,8 @@ class Temp_GNN_PPO(Temp_OnPolicyAlgorithm):
                     self.policy.reset_noise(self.batch_size)
 
                 values, log_prob, entropy = self.policy.evaluate_actions(rollout_data.observations, 
-                                                                         rollout_data.t_1_obs,
-                                                                         rollout_data.t_2_obs,
+                                                                         rollout_data.t_1_observations,
+                                                                         rollout_data.t_2_observations,
                                                                          actions)
                 values = values.flatten()
                 

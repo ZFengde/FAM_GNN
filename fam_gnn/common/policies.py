@@ -37,7 +37,7 @@ from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.policies import BasePolicy
 
 from fam_gnn.common.fam_gnn import FAM_GNN, FAM_GNN_noatte, obs_to_feat, graph_and_types
-from fam_gnn.common.temp_fam_gnn import Temp_FAM_GNN
+from fam_gnn.common.temp_fam_gnn import Temp_FAM_GNN, temp_obs_to_feat, temp_graph_and_types
 from fam_gnn.common.gnn_compare import GAT, Rel_GCN, FAM_Rel_GCN
 
 class ActorCriticPolicy(BasePolicy):
@@ -606,7 +606,7 @@ class Temp_ActorCriticPolicy(BasePolicy):
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
             self.gnn_out_dim = 8
-            self.num_rels = 4
+            self.num_rels = 5
             self.num_ntypes = 3
             self.gnn = Temp_FAM_GNN(input_dim=self.gnn_input_dim, 
                                 h_dim=self.gnn_h_dim, 
@@ -618,26 +618,15 @@ class Temp_ActorCriticPolicy(BasePolicy):
         if self.gnn_type:
             self.node_num_pertime = self.obstacle_num + 2
             self.features_dim = self.gnn_out_dim * 3 # for generalisation
-            self.g, self.edge_types, self.node_types, self.robot_target_edge_ID = graph_and_types(node_num=self.node_num_pertime)
+            self.g, self.edge_types, self.node_types = temp_graph_and_types(node_num=self.node_num_pertime)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
             self.node_types = self.node_types.to(device)
         
         return True
 
-    def forward(self, obs: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-        """
-        Forward pass in all the networks (actor and critic)
-
-        :param obs: Observation
-        :param deterministic: Whether to sample or use deterministic actions
-        :return: action, value and log probability of the action
-        """
-        # Preprocess the observation if needed
-        if self.gnn_type:
-            features = self.gnn_process(obs)
-        else:
-            features = self.extract_features(obs) # already have non-linear in last part
+    def forward(self, obs: th.Tensor, temp_1: th.Tensor, temp_2: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+        features = self.gnn_process(obs, temp_1, temp_2)
         latent_pi, latent_vf = self.mlp_extractor(features)
         # Evaluate the values for the given observations
         values = self.value_net(latent_vf)
@@ -684,21 +673,8 @@ class Temp_ActorCriticPolicy(BasePolicy):
         """
         return self.get_distribution(observation).get_actions(deterministic=deterministic)
 
-    def evaluate_actions(self, obs: th.Tensor, actions: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-        """
-        Evaluate actions according to the current policy,
-        given the observations.
-
-        :param obs:
-        :param actions:
-        :return: estimated value, log likelihood of taking those actions
-            and entropy of the action distribution.
-        """
-        # Preprocess the observation if needed
-        if self.gnn_type:
-            features = self.gnn_process(obs)
-        else:
-            features = self.extract_features(obs)
+    def evaluate_actions(self, obs: th.Tensor, temp_1: th.Tensor, temp_2: th.Tensor, actions: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+        features = self.gnn_process(obs, temp_1, temp_2)
         latent_pi, latent_vf = self.mlp_extractor(features)
         distribution = self._get_action_dist_from_latent(latent_pi)
         log_prob = distribution.log_prob(actions)
@@ -719,46 +695,26 @@ class Temp_ActorCriticPolicy(BasePolicy):
         latent_pi = self.mlp_extractor.forward_actor(features)
         return self._get_action_dist_from_latent(latent_pi)
 
-    def predict_values(self, obs: th.Tensor) -> th.Tensor:
-        """
-        Get the estimated values according to the current policy given the observations.
-
-        :param obs:
-        :return: the estimated values.
-        """
-        if self.gnn_type:
-            features = self.gnn_process(obs)
-        else:
-            features = self.extract_features(obs)
+    def predict_values(self, obs: th.Tensor, temp_1: th.Tensor, temp_2: th.Tensor,) -> th.Tensor:
+        features = self.gnn_process(obs, temp_1, temp_2)
         latent_vf = self.mlp_extractor.forward_critic(features)
         
         return self.value_net(latent_vf)
 
-    def gnn_process(self, obs): # 113, 4*113
+    def gnn_process(self, obs, temp_1, temp_2): # 113, 4*113
         if obs.dim() == 1:
             obs = obs.unsqueeze(0)
-        node_infos = th.transpose(obs_to_feat(obs).to(self.device), 0, 1) # batch * node * dim = 7 * 9 * 6
+        if temp_1.dim() == 1:
+            temp_1 = temp_1.unsqueeze(0)
+        if temp_2.dim() == 1:
+            temp_2 = temp_2.unsqueeze(0)
 
-        # fam_gnn, gat, rel_gcn, gated_gcn, hgt_conv
-        if self.gnn_type == 'fam_gnn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
-            output = features.reshape(features.shape[0], -1)
+        node_infos = th.transpose(temp_obs_to_feat(obs, temp_1, temp_2).to(self.device), 0, 1) # batch * node * dim = 7 * 9 * 6
         
-        elif self.gnn_type == 'fam_gnn_noatte':
+        # fam_gnn, gat, rel_gcn, gated_gcn, hgt_conv
+        if self.gnn_type == 'temp_fam_gnn':
             features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1)
-
-        elif self.gnn_type == 'gat':
-            features = th.transpose(self.gnn(self.g, node_infos.float()), 0, 1) # batch * num_node * feat_size
-            output = features.reshape(features.shape[0], -1) # 3, 48
-
-        elif self.gnn_type == 'rel_gcn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types), 0, 1) # batch * num_node * feat_size
-            output = features.reshape(features.shape[0], -1) # 3, 48
-
-        elif self.gnn_type == 'fam_rel_gcn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
-            output = features.reshape(features.shape[0], -1) # 3, 48
             
         return output
     

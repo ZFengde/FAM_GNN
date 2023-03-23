@@ -7,7 +7,6 @@ import torch as th
 from gym import spaces
 
 from stable_baselines3.common.preprocessing import get_action_dim, get_obs_shape
-from stable_baselines3.common.type_aliases import RolloutBufferSamples
 
 from stable_baselines3.common.utils import get_device
 from stable_baselines3.common.vec_env import VecNormalize
@@ -391,7 +390,7 @@ class Temp_RolloutBuffer(BaseBuffer):
         if self.pos == self.buffer_size:
             self.full = True
 
-    def get(self, batch_size: Optional[int] = None) -> Generator[RolloutBufferSamples, None, None]:
+    def get(self, batch_size: Optional[int] = None) -> Generator[Temp_RolloutBufferSamples, None, None]:
         assert self.full, ""
 
         # here we flatten all parallel envs into a long buffer
@@ -423,7 +422,7 @@ class Temp_RolloutBuffer(BaseBuffer):
             yield self._get_samples(indices[start_idx : start_idx + batch_size])
             start_idx += batch_size
 
-    def _get_samples(self, batch_inds: np.ndarray, env: Optional[VecNormalize] = None) -> RolloutBufferSamples:
+    def _get_samples(self, batch_inds: np.ndarray, env: Optional[VecNormalize] = None) -> Temp_RolloutBufferSamples:
 
         data = (
             self.observations[batch_inds],
@@ -432,8 +431,8 @@ class Temp_RolloutBuffer(BaseBuffer):
             self.log_probs[batch_inds].flatten(),
             self.advantages[batch_inds].flatten(),
             self.returns[batch_inds].flatten(),
-            self.t_1_observations[batch_inds].flatten(),
-            self.t_2_observations[batch_inds].flatten(),
+            self.t_1_observations[batch_inds],
+            self.t_2_observations[batch_inds],
         )
 
-        return RolloutBufferSamples(*tuple(map(self.to_torch, data)))
+        return Temp_RolloutBufferSamples(*tuple(map(self.to_torch, data)))

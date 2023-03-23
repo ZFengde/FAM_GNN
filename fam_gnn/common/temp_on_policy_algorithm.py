@@ -75,9 +75,6 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
 
         self.iteration = 0
 
-        self.t_1_obs = np.zeros((self.n_envs, self.observation_space.shape[0]))
-        self.t_2_obs = np.zeros((self.n_envs, self.observation_space.shape[0]))
-
         if _init_setup_model:
             self._setup_model()
 
@@ -114,6 +111,8 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
                 print(f'{key}: {value}\n')
             f.close()
 
+        self.t_1_obs = np.zeros((self.n_envs, self.observation_space.shape[0]))
+        self.t_2_obs = np.zeros((self.n_envs, self.observation_space.shape[0]))
     def collect_rollouts(
         self,
         env: VecEnv,
@@ -176,9 +175,6 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
                 # Reshape in case of discrete action
                 actions = actions.reshape(-1, 1)
 
-            self.t_2_obs = self.t_1_obs
-            self.t_1_obs = new_obs
-
             # Handle timeout by bootstraping with value function
             # see GitHub issue #633
             for idx, done in enumerate(dones):
@@ -200,10 +196,12 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
                     # Seperate for test and debug
                     self.t_1_obs[idx] = np.zeros((1, self.observation_space.shape[0]))
                     self.t_2_obs[idx] = np.zeros((1, self.observation_space.shape[0]))
-
-            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs, temp_1, temp_2)
-            self._last_obs = new_obs
+            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs, self.t_1_obs, self.t_2_obs)
+            self.t_2_obs = self.t_1_obs # s_t_2
+            self.t_1_obs = self._last_obs # s_t_1
+            self._last_obs = new_obs # s_t
             self._last_episode_starts = dones
+            
 
         with th.no_grad():
             # Compute value for the last timestep

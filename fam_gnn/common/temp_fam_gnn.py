@@ -55,13 +55,13 @@ class TSFuzzyLayer(nn.Module): # -> attention, truth_value
         # Softmax the coupling according to the edge type,
         # for i in range(len(self.edge_sg_ID)):
         #     attention[self.edge_sg_ID[i]] = th.softmax(attention[self.edge_sg_ID[i]], dim=0)
-        attention[self.edge_sg_ID[0]] = th.softmax(attention[self.edge_sg_ID[0]], dim=0)
+        attention[self.priority] = 1.
         
         return {'attention': attention}
 
-    def forward(self, g, feat, edge_sg_ID):
+    def forward(self, g, feat, etypes):
         g.srcdata['h'] = feat # 9, batch, input_dim 
-        self.edge_sg_ID = edge_sg_ID
+        self.priority = th.cat((th.where(etypes==0)[0], th.where(etypes==4)[0]))
         
         g.apply_edges(self.edge_func)
         # g.update_all(self.edge_func, fn.sum('attention', 'h'))
@@ -168,10 +168,10 @@ class Temp_FAM_GNN(nn.Module):
         self.layer1 = Temp_FAM_GNNLayer(self.input_dim, self.h_dim, self.num_rels, self.num_ntypes)
         self.layer2 = Temp_FAM_GNNLayer(self.h_dim, self.out_dim, self.num_rels, self.num_ntypes)
 
-    def forward(self, g, feat, etypes, ntypes, edge_sg_ID):
+    def forward(self, g, feat, etypes, ntypes):
         
         # Attention mechanism
-        attention = self.ante_layer(g, feat, edge_sg_ID) 
+        attention = self.ante_layer(g, feat, etypes) 
 
         x = th.tanh(self.layer1(g, feat, etypes, ntypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
@@ -179,3 +179,78 @@ class Temp_FAM_GNN(nn.Module):
         x = th.stack((x[0], x[1], th.mean(x[2:], dim=0)), dim=0)
         return x
 
+def temp_graph_and_types(node_num): # -> graph, edge_types
+    edge_src = []
+    edge_dst = []
+    edge_types = []
+    ID_indicator = 0
+    temp_edge_src = []
+    temp_edge_dst = []
+    temp_edge_types = []
+    for i in range(node_num):
+        temp_edge_src.append(i+node_num)
+        temp_edge_src.append(i+node_num*2)
+        temp_edge_dst.append(i)
+        temp_edge_dst.append(i+node_num)
+        temp_edge_types.append(4)
+        temp_edge_types.append(4)
+        for j in range(node_num):
+
+            if i == j:
+                continue
+            edge_src.append(i)
+            edge_dst.append(j)
+            '''
+            relationships: 
+            0: robot-target, 1: robot-obstacle
+            2: target-obstacle, 3:obstacle-obstacle
+            '''
+            # robot-target
+            if (i==0 and j==1) or (i==1 and j==0):
+                edge_types.append(0)
+
+            # robot-obstacle
+            elif (i==0 and 2<=j) or (2<=i and j==0):
+                edge_types.append(1)
+
+            # target-obstacle
+            elif (i==1 and 2<=j) or (2<=i and j==1):
+                edge_types.append(2)
+
+            # obstacle-obstacle
+            else:
+                edge_types.append(3)
+            
+            ID_indicator += 1
+	
+	# here generate node types for temp graph
+    node_types = th.zeros(node_num, dtype=th.long) + 2 
+    node_types[0] = 0
+    node_types[1] = 1
+    node_types = node_types.repeat(3)
+    
+	# here generate edge types for temp graph
+    edge_types = th.cat((th.tensor(edge_types).repeat(3), th.tensor(temp_edge_types)), dim=0)
+	# here generate edge types for temp graph
+    edge_src = th.cat((th.tensor(edge_src), th.tensor(edge_src) + node_num, th.tensor(edge_src) + node_num * 2, th.tensor(temp_edge_src)), dim=0)
+    edge_dst = th.cat((th.tensor(edge_dst), th.tensor(edge_dst) + node_num, th.tensor(edge_dst) + node_num * 2, th.tensor(temp_edge_dst)), dim=0)
+
+    return dgl.graph((edge_src, edge_dst)), edge_types, node_types
+
+def temp_obs_to_feat(obs, temp_1, temp_2): # -> node_infos
+    # obs_size = 6 + 2 + 3*2 = 22 14
+    def node_info_generator(obs_t):
+        m = th.nn.ZeroPad2d((0, 4, 0, 0))
+        obs_num = int((obs_t.shape[1] - 8) / 2)
+        robot_info = obs_t[:, :6]
+        target_info = m(obs_t[:, 6: 8]) # 6, 6
+        obstacle_infos = m(obs_t[:, 8:].view(-1, obs_num, 2))
+        node_infos = th.cat((robot_info.unsqueeze(1), target_info.unsqueeze(1), obstacle_infos), dim=1)
+        return node_infos
+
+    obs_t = node_info_generator(obs)
+    obs_t_1 = node_info_generator(temp_1)
+    obs_t_2 = node_info_generator(temp_2)
+
+    temp_node_infos = th.cat((obs_t, obs_t_1, obs_t_2), dim=1)
+    return temp_node_infos
