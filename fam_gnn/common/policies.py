@@ -38,7 +38,7 @@ from stable_baselines3.common.policies import BasePolicy
 
 from fam_gnn.common.fam_gnn import FAM_GNN, FAM_GNN_noatte, obs_to_feat, graph_and_types
 from fam_gnn.common.temp_fam_gnn import Temp_FAM_GNN, temp_obs_to_feat, temp_graph_and_types
-from fam_gnn.common.gnn_compare import GAT, Rel_GCN, FAM_Rel_GCN
+from fam_gnn.common.gnn_compare import GAT, FAM_GAT, Rel_GCN, FAM_Rel_GCN
 
 class ActorCriticPolicy(BasePolicy):
 
@@ -254,6 +254,14 @@ class ActorCriticPolicy(BasePolicy):
                             out_dim=self.gnn_out_dim, 
                             num_heads=self.num_heads).to(device)
             
+        elif self.gnn_type == 'fam_gat':
+            self.gnn_input_dim = 6
+            self.gnn_h_dim = 8
+            self.gnn_out_dim = 8
+            self.gnn = FAM_GAT(input_dim=self.gnn_input_dim, 
+                            h_dim=self.gnn_h_dim, 
+                            out_dim=self.gnn_out_dim).to(device)
+            
         elif self.gnn_type == 'rel_gcn':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
@@ -410,6 +418,10 @@ class ActorCriticPolicy(BasePolicy):
 
         elif self.gnn_type == 'gat':
             features = th.transpose(self.gnn(self.g, node_infos.float()), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1) # 3, 48
+
+        elif self.gnn_type == 'fam_gat':
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1) # 3, 48
 
         elif self.gnn_type == 'rel_gcn':
