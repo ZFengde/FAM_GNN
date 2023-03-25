@@ -52,17 +52,13 @@ class TSFuzzyLayer(nn.Module): # -> attention, truth_value
         attention = attention.unsqueeze(2) # edge_num, batch, 1, represent the coupling degree of the edge
 
         # Softmax the coupling according to the edge type,
-        # for i in range(len(self.robot_target_edge_ID)):
-        #     attention[self.robot_target_edge_ID[i]] = th.softmax(attention[self.robot_target_edge_ID[i]], dim=0)
-        # attention[self.robot_target_edge_ID[0]] = th.softmax(attention[self.robot_target_edge_ID[0]], dim=0)
-        attention[self.robot_target_edge_ID] = 1.
+        attention[self.priority] = 1.
         
         return {'attention': attention}
 
-    def forward(self, g, feat, robot_target_edge_ID):
+    def forward(self, g, feat, etypes):
         g.srcdata['h'] = feat # 9, batch, input_dim 
-        self.robot_target_edge_ID = robot_target_edge_ID
-        
+        self.priority = th.cat((th.where(etypes==0)[0], th.where(etypes==4)[0]))
         g.apply_edges(self.edge_func)
         # g.update_all(self.edge_func, fn.sum('attention', 'h'))
         
@@ -168,11 +164,10 @@ class FAM_GNN(nn.Module):
         self.layer1 = FAM_GNNLayer(self.input_dim, self.h_dim, self.num_rels, self.num_ntypes)
         self.layer2 = FAM_GNNLayer(self.h_dim, self.out_dim, self.num_rels, self.num_ntypes)
 
-    def forward(self, g, feat, etypes, ntypes, robot_target_edge_ID):
+    def forward(self, g, feat, etypes, ntypes):
         
         # Attention mechanism
-        attention = self.ante_layer(g, feat, robot_target_edge_ID) 
-
+        attention = self.ante_layer(g, feat, etypes) 
         x = th.tanh(self.layer1(g, feat, etypes, ntypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
         # here we take robot, target, and a compressed obstacle info
@@ -253,7 +248,6 @@ def graph_and_types(node_num): # -> graph, edge_types
     edge_dst = []
     edge_types = []
     ID_indicator = 0
-    robot_target_edge_ID = []
 
     for i in range(node_num):
         for j in range(node_num):
@@ -270,7 +264,6 @@ def graph_and_types(node_num): # -> graph, edge_types
             # robot-target
             if (i==0 and j==1) or (i==1 and j==0):
                 edge_types.append(0)
-                robot_target_edge_ID.append(ID_indicator)
 
             # robot-obstacle
             elif (i==0 and 2<=j) or (2<=i and j==0):
@@ -291,12 +284,11 @@ def graph_and_types(node_num): # -> graph, edge_types
     node_types[1] = 1
 
             # see if here could be changed to batch operation
-    return dgl.graph((edge_src, edge_dst)), th.tensor(edge_types), th.tensor(node_types, dtype=th.long), th.tensor(robot_target_edge_ID)
+    return dgl.graph((edge_src, edge_dst)), th.tensor(edge_types), th.tensor(node_types, dtype=th.long)
 
 # convert raw observation into node_infos
 def obs_to_feat(obs): # -> node_infos
     # obs_size = 6 + 2 + 3*2 = 22 14
-    
     if obs.dim() == 1:
         obs = obs.unsqueeze(0)
 

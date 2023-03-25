@@ -155,8 +155,8 @@ class FAM_GAT(nn.Module):
         self.layer1 = FAM_GATConv(self.input_dim, self.h_dim)
         self.layer2 = FAM_GATConv(self.h_dim, self.out_dim)
 
-    def forward(self, g, feat, edge_sg_ID): # 6, 20480, 6
-        attention = self.fam_layer(g, feat, edge_sg_ID) 
+    def forward(self, g, feat, etypes): # 6, 20480, 6
+        attention = self.fam_layer(g, feat, etypes) 
         x = self.layer1(g, feat, attention).flatten(2) # 6, 3, 6 --> 6, 3, 24
         x = self.layer2(g, x, attention) # 6, 3, 24 --> 6, 3, 24
         x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
@@ -174,8 +174,8 @@ class FAM_Rel_GCN(nn.Module):
         self.layer1 = FAM_RelGraphConv(self.input_dim, self.h_dim, self.num_rels)
         self.layer2 = FAM_RelGraphConv(self.h_dim, self.out_dim, self.num_rels)
 
-    def forward(self, g, feat, etypes, edge_sg_ID):
-        attention = self.fam_layer(g, feat, edge_sg_ID) 
+    def forward(self, g, feat, etypes):
+        attention = self.fam_layer(g, feat, etypes) 
         x = th.tanh(self.layer1(g, feat, etypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, attention)) # node_num, batch, out_dim
         x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)

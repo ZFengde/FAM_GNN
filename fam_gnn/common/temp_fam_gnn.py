@@ -170,12 +170,71 @@ class Temp_FAM_GNN(nn.Module):
         self.layer2 = Temp_FAM_GNNLayer(self.h_dim, self.out_dim, self.num_rels, self.num_ntypes)
 
     def forward(self, g, feat, etypes, ntypes):
-        
         # Attention mechanism
         attention = self.ante_layer(g, feat, etypes) 
 
         x = th.tanh(self.layer1(g, feat, etypes, ntypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
+        # here we take robot, target, and a compressed obstacle info
+        x = th.split(x, self.node_num_pertime) # 3 * (7, 4, 8)
+        x = th.mean(th.stack(x), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
+        return x
+
+class Temp_FAM_RelGraphConv(nn.Module):
+    def __init__(self, in_feat, out_feat, num_rels):
+        super().__init__()
+        
+        self.in_feat = in_feat
+        self.out_feat = out_feat
+        self.num_rels = num_rels
+
+        self.weight = nn.Parameter(th.Tensor(self.num_rels, self.in_feat, self.out_feat))
+        self.h_bias = nn.Parameter(th.Tensor(out_feat))
+        self.loop_weight = nn.Parameter(th.Tensor(in_feat, out_feat))
+
+        nn.init.zeros_(self.h_bias)
+        nn.init.xavier_uniform_(self.weight, gain=nn.init.calculate_gain("relu"))
+        nn.init.xavier_uniform_(self.loop_weight, gain=nn.init.calculate_gain("relu"))
+
+    def message(self, edges):
+
+        attention = edges.data['attention']
+        w = self.weight[edges.data['etype']] # 6, 6, 10
+        m = (th.bmm(edges.src['h'], w) + self.h_bias) * attention # 6, 4, 6
+
+        return {"m": m}
+
+    def forward(self, g, feat, etype, attention):
+        with g.local_scope():
+            g.srcdata["h"] = feat
+            g.edata["etype"] = etype
+            g.edata["attention"] = attention
+
+            # message passing
+            g.update_all(self.message, fn.sum("m", "h"))
+            # apply bias and activation
+            h = g.dstdata["h"]
+            h = h + feat[: g.num_dst_nodes()] @ self.loop_weight
+            return h
+
+class Temp_FAM_Rel_GCN(nn.Module):
+    def __init__(self, input_dim, h_dim, out_dim, num_rels, node_num_pertime):
+        super(Temp_FAM_Rel_GCN, self).__init__()
+        self.input_dim = input_dim
+        self.h_dim = h_dim
+        self.out_dim = out_dim
+        self.num_rels = num_rels
+        self.node_num_pertime = node_num_pertime
+
+        self.fam_layer = TSFuzzyLayer()
+        self.layer1 = Temp_FAM_RelGraphConv(self.input_dim, self.h_dim, self.num_rels)
+        self.layer2 = Temp_FAM_RelGraphConv(self.h_dim, self.out_dim, self.num_rels)
+
+    def forward(self, g, feat, etypes):
+        attention = self.fam_layer(g, feat, etypes) 
+        x = th.tanh(self.layer1(g, feat, etypes, attention))
+        x = th.tanh(self.layer2(g, x, etypes, attention)) # node_num, batch, out_dim
         # here we take robot, target, and a compressed obstacle info
         x = th.split(x, self.node_num_pertime) # 3 * (7, 4, 8)
         x = th.mean(th.stack(x), dim=0)

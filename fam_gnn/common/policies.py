@@ -37,7 +37,7 @@ from stable_baselines3.common.type_aliases import Schedule
 from stable_baselines3.common.policies import BasePolicy
 
 from fam_gnn.common.fam_gnn import FAM_GNN, FAM_GNN_noatte, obs_to_feat, graph_and_types
-from fam_gnn.common.temp_fam_gnn import Temp_FAM_GNN, temp_obs_to_feat, temp_graph_and_types
+from fam_gnn.common.temp_fam_gnn import Temp_FAM_GNN, Temp_FAM_Rel_GCN, temp_obs_to_feat, temp_graph_and_types
 from fam_gnn.common.gnn_compare import GAT, FAM_GAT, Rel_GCN, FAM_Rel_GCN
 
 class ActorCriticPolicy(BasePolicy):
@@ -286,7 +286,7 @@ class ActorCriticPolicy(BasePolicy):
         if self.gnn_type:
             self.node_num = self.obstacle_num + 2
             self.features_dim = self.gnn_out_dim * 3 # for generalisation
-            self.g, self.edge_types, self.node_types, self.robot_target_edge_ID = graph_and_types(node_num=self.node_num)
+            self.g, self.edge_types, self.node_types = graph_and_types(node_num=self.node_num)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
             self.node_types = self.node_types.to(device)
@@ -409,7 +409,7 @@ class ActorCriticPolicy(BasePolicy):
 
         # fam_gnn, gat, rel_gcn, gated_gcn, hgt_conv
         if self.gnn_type == 'fam_gnn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1)
         
         elif self.gnn_type == 'fam_gnn_noatte':
@@ -421,7 +421,7 @@ class ActorCriticPolicy(BasePolicy):
             output = features.reshape(features.shape[0], -1) # 3, 48
 
         elif self.gnn_type == 'fam_gat':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1) # 3, 48
 
         elif self.gnn_type == 'rel_gcn':
@@ -429,7 +429,7 @@ class ActorCriticPolicy(BasePolicy):
             output = features.reshape(features.shape[0], -1) # 3, 48
 
         elif self.gnn_type == 'fam_rel_gcn':
-            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.robot_target_edge_ID), 0, 1) # batch * num_node * feat_size
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1) # 3, 48
             
         return output
@@ -613,8 +613,7 @@ class Temp_ActorCriticPolicy(BasePolicy):
     def _build_gnn(self):
         device = th.device("cuda:0" if th.cuda.is_available() else "cpu")
 
-        # choose which GNN method to be used here
-        if self.gnn_type == 'temp_fam_gnn':
+        if self.gnn_type:
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
             self.gnn_out_dim = 8
@@ -626,11 +625,21 @@ class Temp_ActorCriticPolicy(BasePolicy):
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
             self.node_types = self.node_types.to(device)
+
+        # choose which GNN method to be used here
+        if self.gnn_type == 'temp_fam_gnn':
             self.gnn = Temp_FAM_GNN(input_dim=self.gnn_input_dim, 
                                 h_dim=self.gnn_h_dim, 
                                 out_dim=self.gnn_out_dim, 
                                 num_rels=self.num_rels,
                                 num_ntypes=self.num_ntypes,
+                                node_num_pertime=self.node_num_pertime).to(device) 
+
+        if self.gnn_type == 'temp_fam_rel_gcn':
+            self.gnn = Temp_FAM_Rel_GCN(input_dim=self.gnn_input_dim, 
+                                h_dim=self.gnn_h_dim, 
+                                out_dim=self.gnn_out_dim, 
+                                num_rels=self.num_rels,
                                 node_num_pertime=self.node_num_pertime).to(device) 
             
         return True
@@ -725,6 +734,9 @@ class Temp_ActorCriticPolicy(BasePolicy):
         if self.gnn_type == 'temp_fam_gnn':
             features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types, self.node_types), 0, 1) # batch * num_node * feat_size
             output = features.reshape(features.shape[0], -1)
-            
+
+        if self.gnn_type == 'temp_fam_rel_gcn':
+            features = th.transpose(self.gnn(self.g, node_infos.float(), self.edge_types), 0, 1) # batch * num_node * feat_size
+            output = features.reshape(features.shape[0], -1) # 3, 48
         return output
     
