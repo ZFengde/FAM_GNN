@@ -620,21 +620,19 @@ class Temp_ActorCriticPolicy(BasePolicy):
             self.gnn_out_dim = 8
             self.num_rels = 5
             self.num_ntypes = 3
-            self.gnn = Temp_FAM_GNN(input_dim=self.gnn_input_dim, 
-                                h_dim=self.gnn_h_dim, 
-                                out_dim=self.gnn_out_dim, 
-                                num_rels=self.num_rels,
-                                num_ntypes=self.num_ntypes).to(device) 
-            
-        # manually input number of obstacles here
-        if self.gnn_type:
             self.node_num_pertime = self.obstacle_num + 2
             self.features_dim = self.gnn_out_dim * 3 # for generalisation
             self.g, self.edge_types, self.node_types = temp_graph_and_types(node_num=self.node_num_pertime)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
             self.node_types = self.node_types.to(device)
-        
+            self.gnn = Temp_FAM_GNN(input_dim=self.gnn_input_dim, 
+                                h_dim=self.gnn_h_dim, 
+                                out_dim=self.gnn_out_dim, 
+                                num_rels=self.num_rels,
+                                num_ntypes=self.num_ntypes,
+                                node_num_pertime=self.node_num_pertime).to(device) 
+            
         return True
 
     def forward(self, obs: th.Tensor, temp_1: th.Tensor, temp_2: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:

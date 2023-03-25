@@ -156,13 +156,14 @@ class Temp_FAM_GNNLayer(nn.Module): # using antecedants to update node features
             return h
 
 class Temp_FAM_GNN(nn.Module):
-    def __init__(self, input_dim, h_dim, out_dim, num_rels, num_ntypes):
+    def __init__(self, input_dim, h_dim, out_dim, num_rels, num_ntypes, node_num_pertime):
         super(Temp_FAM_GNN, self).__init__()
         self.input_dim = input_dim
         self.h_dim = h_dim
         self.out_dim = out_dim
         self.num_rels = num_rels
         self.num_ntypes = num_ntypes
+        self.node_num_pertime = node_num_pertime
 
         self.ante_layer = TSFuzzyLayer()
         self.layer1 = Temp_FAM_GNNLayer(self.input_dim, self.h_dim, self.num_rels, self.num_ntypes)
@@ -176,6 +177,8 @@ class Temp_FAM_GNN(nn.Module):
         x = th.tanh(self.layer1(g, feat, etypes, ntypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
         # here we take robot, target, and a compressed obstacle info
+        x = th.split(x, self.node_num_pertime) # 3 * (7, 4, 8)
+        x = th.mean(th.stack(x), dim=0)
         x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
         return x
 
