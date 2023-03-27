@@ -74,8 +74,8 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
         self.rollout_buffer = None
 
         self.iteration = 0
-        self.success_episode_num = deque(maxlen=10)
-        self.reach_with_collision = deque(maxlen=10)
+        self.success_episode_num = deque(maxlen=100)
+        self.reach_with_collision = deque(maxlen=100)
 
         if _init_setup_model:
             self._setup_model()

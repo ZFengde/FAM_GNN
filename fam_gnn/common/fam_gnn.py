@@ -171,7 +171,7 @@ class FAM_GNN(nn.Module):
         x = th.tanh(self.layer1(g, feat, etypes, ntypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
         # here we take robot, target, and a compressed obstacle info
-        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         return x
 
 class FAM_GNNLayer_noatte(nn.Module): # using antecedants to update node features
@@ -239,7 +239,7 @@ class FAM_GNN_noatte(nn.Module):
         # Attention mechanism
         x = th.tanh(self.layer1(g, feat, etypes, ntypes))
         x = th.tanh(self.layer2(g, x, etypes, ntypes)) # node_num, batch, out_dim
-        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         return x
        
 # generate graph, edge type and etype ID

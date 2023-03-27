@@ -124,7 +124,7 @@ class GAT(nn.Module):
     def forward(self, g, feat): # 6, 20480, 6
         x = self.layer1(g, feat).flatten(2) # 6, 3, 6 --> 6, 3, 24
         x = th.mean(self.layer2(g, x), dim=2) # 6, 3, 24 --> 6, 3, 24
-        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         return x
     
 class Rel_GCN(nn.Module):
@@ -141,7 +141,7 @@ class Rel_GCN(nn.Module):
     def forward(self, g, feat, etypes):
         x = th.tanh(self.layer1(g, feat, etypes))
         x = th.tanh(self.layer2(g, x, etypes)) # node_num, batch, out_dim
-        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         return x
 
 class FAM_GAT(nn.Module):
@@ -159,7 +159,7 @@ class FAM_GAT(nn.Module):
         attention = self.fam_layer(g, feat, etypes) 
         x = self.layer1(g, feat, attention).flatten(2) # 6, 3, 6 --> 6, 3, 24
         x = self.layer2(g, x, attention) # 6, 3, 24 --> 6, 3, 24
-        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         return x
     
 class FAM_Rel_GCN(nn.Module):
@@ -178,7 +178,7 @@ class FAM_Rel_GCN(nn.Module):
         attention = self.fam_layer(g, feat, etypes) 
         x = th.tanh(self.layer1(g, feat, etypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, attention)) # node_num, batch, out_dim
-        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         return x   
      
 # g = dgl.graph(([0,1,2,3,2,5], [1,2,3,4,5,0]))

@@ -285,7 +285,7 @@ class ActorCriticPolicy(BasePolicy):
         # manually input number of obstacles here
         if self.gnn_type:
             self.node_num = self.obstacle_num + 2
-            self.features_dim = self.gnn_out_dim * 3 # for generalisation
+            self.features_dim = self.gnn_out_dim * 5 # for generalisation
             self.g, self.edge_types, self.node_types = graph_and_types(node_num=self.node_num)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
@@ -620,7 +620,7 @@ class Temp_ActorCriticPolicy(BasePolicy):
             self.num_rels = 5
             self.num_ntypes = 3
             self.node_num_pertime = self.obstacle_num + 2
-            self.features_dim = self.gnn_out_dim * 3 # for generalisation
+            self.features_dim = self.gnn_out_dim * 5 # for generalisation
             self.g, self.edge_types, self.node_types = temp_graph_and_types(node_num=self.node_num_pertime)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
