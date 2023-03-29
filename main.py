@@ -68,7 +68,7 @@ def main(
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env_id', type=str, default='Turtlebot-v2') # 'Turtlebot-v2''Safexp-PointGoal1-v0'
+    parser.add_argument('--env_id', type=str, default='Turtlebot-v3') # 'Turtlebot-v2''Safexp-PointGoal1-v0'
     parser.add_argument('--algo', type=str, default='Temp_GNN_PPO') 
     parser.add_argument('--policy_type', type=str, default='MlpPolicy')
     parser.add_argument('--n_envs', type=int, default=4)
