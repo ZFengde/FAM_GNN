@@ -223,7 +223,7 @@ class ActorCriticPolicy(BasePolicy):
         if self.gnn_type == 'fam_gnn':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 8
+            self.gnn_out_dim = 16
             self.num_rels = 4
             self.num_ntypes = 3
             self.gnn = FAM_GNN(input_dim=self.gnn_input_dim, 
@@ -235,7 +235,7 @@ class ActorCriticPolicy(BasePolicy):
         if self.gnn_type == 'fam_gnn_noatte':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 8
+            self.gnn_out_dim = 16
             self.num_rels = 4
             self.num_ntypes = 3
             self.gnn = FAM_GNN_noatte(input_dim=self.gnn_input_dim, 
@@ -247,7 +247,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'gat':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 8
-            self.gnn_out_dim = 8
+            self.gnn_out_dim = 16
             self.num_heads = 3
             self.gnn = GAT(input_dim=self.gnn_input_dim, 
                             h_dim=self.gnn_h_dim, 
@@ -257,7 +257,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'fam_gat':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 8
-            self.gnn_out_dim = 8
+            self.gnn_out_dim = 16
             self.gnn = FAM_GAT(input_dim=self.gnn_input_dim, 
                             h_dim=self.gnn_h_dim, 
                             out_dim=self.gnn_out_dim).to(device)
@@ -265,7 +265,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'rel_gcn':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 8
+            self.gnn_out_dim = 16
             self.num_rels = 4
             self.gnn = Rel_GCN(input_dim=self.gnn_input_dim, 
                                 h_dim=self.gnn_h_dim, 
@@ -275,7 +275,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'fam_rel_gcn':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 8
+            self.gnn_out_dim = 16
             self.num_rels = 4
             self.gnn = FAM_Rel_GCN(input_dim=self.gnn_input_dim, 
                                     h_dim=self.gnn_h_dim, 
@@ -616,7 +616,7 @@ class Temp_ActorCriticPolicy(BasePolicy):
         if self.gnn_type:
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 8
+            self.gnn_out_dim = 16
             self.num_rels = 5
             self.num_ntypes = 3
             self.node_num_pertime = self.obstacle_num + 2
