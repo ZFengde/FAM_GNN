@@ -198,7 +198,6 @@ class RolloutBuffer(BaseBuffer):
         super().reset()
 
     def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray) -> None:
-        self.ep_costs = 0
         
         last_values = last_values.clone().cpu().numpy().flatten()
         last_gae_lam = 0
@@ -332,7 +331,6 @@ class Temp_RolloutBuffer(BaseBuffer):
         super().reset()
 
     def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray) -> None:
-        self.ep_costs = 0
         
         last_values = last_values.clone().cpu().numpy().flatten()
         last_gae_lam = 0
