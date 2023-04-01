@@ -74,7 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_envs', type=int, default=4)
     parser.add_argument('--iter_num', type=int, default=500) # Total_timestep = iter_num * n_envs * n_steps, here is 2000 * 4 * 20480 = 1.2e7
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--net_arch_dim', type=int, default=64)
+    parser.add_argument('--net_arch_dim', type=int, default=128)
     parser.add_argument('--obstacle_num', type=int, default=5)
     parser.add_argument('--gnn_type', type=str, default='fam_rel_gcn') 
     # fam_gnn, fam_gnn_noatte, gat, rel_gcn, fam_rel_gcn | temp_fam_gnn, temp_fam_rel_gcn
