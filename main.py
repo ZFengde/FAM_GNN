@@ -31,8 +31,8 @@ def main(
 			algo_name = 'Temp_GNN_PPO'
 			gnn_which = 'temp_fam_gnn'
 		if indicator == 4:
-			algo_name = 'GNN_PPO'
-			gnn_which = 'temp_fam_gnn'
+			algo_name = 'Temp_GNN_PPO'
+			gnn_which = 'temp_fam_rel_gcn'
 		log_name = algo_name + gnn_which
 		algo = eval('fam_gnn.'+algo_name)
 	else:
