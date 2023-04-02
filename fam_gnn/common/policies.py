@@ -213,7 +213,6 @@ class ActorCriticPolicy(BasePolicy):
                 module.apply(partial(self.init_weights, gain=gain))
 
         # Setup optimizer with initial learning rate
-        # TODO, need to watch what parameters are included
         self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)
 
     def _build_gnn(self):
@@ -223,7 +222,7 @@ class ActorCriticPolicy(BasePolicy):
         if self.gnn_type == 'fam_gnn':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 16
+            self.gnn_out_dim = 8
             self.num_rels = 4
             self.num_ntypes = 3
             self.gnn = FAM_GNN(input_dim=self.gnn_input_dim, 
@@ -235,7 +234,7 @@ class ActorCriticPolicy(BasePolicy):
         if self.gnn_type == 'fam_gnn_noatte':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 16
+            self.gnn_out_dim = 8
             self.num_rels = 4
             self.num_ntypes = 3
             self.gnn = FAM_GNN_noatte(input_dim=self.gnn_input_dim, 
@@ -247,7 +246,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'gat':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 8
-            self.gnn_out_dim = 16
+            self.gnn_out_dim = 8
             self.num_heads = 3
             self.gnn = GAT(input_dim=self.gnn_input_dim, 
                             h_dim=self.gnn_h_dim, 
@@ -257,7 +256,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'fam_gat':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 8
-            self.gnn_out_dim = 16
+            self.gnn_out_dim = 8
             self.gnn = FAM_GAT(input_dim=self.gnn_input_dim, 
                             h_dim=self.gnn_h_dim, 
                             out_dim=self.gnn_out_dim).to(device)
@@ -265,7 +264,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'rel_gcn':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 16
+            self.gnn_out_dim = 8
             self.num_rels = 4
             self.gnn = Rel_GCN(input_dim=self.gnn_input_dim, 
                                 h_dim=self.gnn_h_dim, 
@@ -275,7 +274,7 @@ class ActorCriticPolicy(BasePolicy):
         elif self.gnn_type == 'fam_rel_gcn':
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 16
+            self.gnn_out_dim = 8
             self.num_rels = 4
             self.gnn = FAM_Rel_GCN(input_dim=self.gnn_input_dim, 
                                     h_dim=self.gnn_h_dim, 
@@ -285,7 +284,7 @@ class ActorCriticPolicy(BasePolicy):
         # manually input number of obstacles here
         if self.gnn_type:
             self.node_num = self.obstacle_num + 2
-            self.features_dim = self.gnn_out_dim * 5 # for generalisation
+            self.features_dim = self.gnn_out_dim * self.node_num # for generalisation
             self.g, self.edge_types, self.node_types = graph_and_types(node_num=self.node_num)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
@@ -616,11 +615,11 @@ class Temp_ActorCriticPolicy(BasePolicy):
         if self.gnn_type:
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
-            self.gnn_out_dim = 16
+            self.gnn_out_dim = 8
             self.num_rels = 5
             self.num_ntypes = 3
             self.node_num_pertime = self.obstacle_num + 2
-            self.features_dim = self.gnn_out_dim * 5# for generalisation
+            self.features_dim = self.gnn_out_dim * self.node_num_pertime # for generalisation
             self.g, self.edge_types, self.node_types = temp_graph_and_types(node_num=self.node_num_pertime)
             self.g = self.g.to(device)
             self.edge_types = self.edge_types.to(device)
