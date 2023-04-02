@@ -179,7 +179,8 @@ class FAM_Rel_GCN(nn.Module):
         x = th.tanh(self.layer1(g, feat, etypes, attention))
         x = th.tanh(self.layer2(g, x, etypes, attention)) # node_num, batch, out_dim
         # x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
-        x = x[0].unsqueeze(0)
+        # x = x[0].unsqueeze(0)
+        x = th.stack((x[0], x[1]), dim=0)
         return x   
      
 # g = dgl.graph(([0,1,2,3,2,5], [1,2,3,4,5,0]))
