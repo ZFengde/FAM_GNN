@@ -17,22 +17,33 @@ def main(
 		net_arch_dim, 
 		obstacle_num, 
 		gnn_type, 
-		early_stop):
+		early_stop,
+		indicator):
 
-	algo_name = algo
-	log_name = algo_name
-
-	if early_stop:
-		target_kl = 0.005
+	if indicator:
+		if indicator == 1:
+			algo_name = 'GNN_PPO'
+			gnn_which = 'fam_gnn'
+		if indicator == 2:
+			algo_name = 'GNN_PPO'
+			gnn_which = 'fam_rel_gcn'
+		if indicator == 3:
+			algo_name = 'Temp_GNN_PPO'
+			gnn_which = 'temp_fam_gnn'
+		if indicator == 4:
+			algo_name = 'GNN_PPO'
+			gnn_which = 'temp_fam_gnn'
+		log_name = algo_name + gnn_which
+		algo = eval('fam_gnn.'+algo_name)
 	else:
-		target_kl = None
+		algo_name = algo
+		log_name = algo_name
+		gnn_which = None
+		if 'GNN' in algo:
+			gnn_which = gnn_type
+			log_name += gnn_type
+		algo = eval('fam_gnn.'+algo)
 
-	gnn_which = None
-	if 'GNN' in algo:
-		gnn_which = gnn_type
-		log_name += gnn_type
-
-	algo = eval('fam_gnn.'+algo)
 	if 'Turtlebot' in env_id:
 		# env_kwargs = {'obstacle_num': obstacle_num, 'use_gui': True}
 		env_kwargs = {'obstacle_num': obstacle_num}
@@ -48,7 +59,11 @@ def main(
 		os.makedirs(modeldir)
 	if not os.path.exists(logdir):
 		os.makedirs(logdir)
-		
+
+	if early_stop:
+		target_kl = 0.005
+	else:
+		target_kl = None
 	model = algo(
 				policy_type, 
 	      		env, 
@@ -75,6 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=5)
+    parser.add_argument('--indicator', type=int, default=None)
     parser.add_argument('--gnn_type', type=str, default='fam_rel_gcn') 
     # fam_gnn, fam_gnn_noatte, gat, rel_gcn, fam_rel_gcn | temp_fam_gnn, temp_fam_rel_gcn
     parser.add_argument('--early_stop', action='store_true') # if no action, or said default if False, otherwise it's True
@@ -90,4 +106,5 @@ if __name__ == '__main__':
 		args.net_arch_dim,
 		args.obstacle_num,
 		args.gnn_type,
-		args.early_stop)
+		args.early_stop,
+		args.indicator,)
