@@ -178,7 +178,7 @@ class Temp_FAM_GNN(nn.Module):
         # here we take robot, target, and a compressed obstacle info
         x = th.split(x, self.node_num_pertime) # 3 * (7, 4, 8)
         x = th.mean(th.stack(x), dim=0)
-        # x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         # x = x[0].unsqueeze(0)
         # x = th.stack((x[0], x[1]), dim=0)
         return x
@@ -240,7 +240,7 @@ class Temp_FAM_Rel_GCN(nn.Module):
         # here we take robot, target, and a compressed obstacle info
         x = th.split(x, self.node_num_pertime) # 3 * (7, 4, 8)
         x = th.mean(th.stack(x), dim=0)
-        # x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
+        x = th.stack((x[0], x[1], th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values, th.mean(x[2:], dim=0)), dim=0)
         # x = x[0].unsqueeze(0)
         # x = th.stack((x[0], x[1]), dim=0)
         return x
