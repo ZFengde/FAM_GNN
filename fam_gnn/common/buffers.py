@@ -25,7 +25,6 @@ class RolloutBufferSamples(NamedTuple):
     advantages: th.Tensor
     returns: th.Tensor
     
-    
 class Temp_RolloutBufferSamples(NamedTuple):
     observations: th.Tensor
     actions: th.Tensor
@@ -172,14 +171,17 @@ class RolloutBuffer(BaseBuffer):
         device: Union[th.device, str] = "auto",
         gae_lambda: float = 1,
         gamma: float = 0.99,
+        gamma_fail: float = 0.9,
         n_envs: int = 1,
     ):
 
         super().__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
         self.gae_lambda = gae_lambda
         self.gamma = gamma
+        self.gamma_fail = gamma_fail
         self.observations, self.actions, self.rewards, self.advantages = None, None, None, None
         self.returns, self.episode_starts, self.values, self.log_probs = None, None, None, None
+        self.episode_fails = None
         self.generator_ready = False
         self.reset()
 
@@ -190,6 +192,7 @@ class RolloutBuffer(BaseBuffer):
         self.rewards = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.returns = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.episode_starts = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.episode_fails = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.values = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.log_probs = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.advantages = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
@@ -197,23 +200,26 @@ class RolloutBuffer(BaseBuffer):
         self.generator_ready = False
         super().reset()
 
-    def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray) -> None:
+    def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray, fails: np.ndarray) -> None:
         
         last_values = last_values.clone().cpu().numpy().flatten()
         last_gae_lam = 0
         
         for step in reversed(range(self.buffer_size)):
 
-            # for the last step inside the buffer, which could be done or not, we should determine them seperately
             if step == self.buffer_size - 1:
                 next_non_terminal = 1.0 - dones
                 next_values = last_values
+                indicators = fails
             else:
                 next_non_terminal = 1.0 - self.episode_starts[step + 1]
                 next_values = self.values[step + 1]
-
-            delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
-            last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+                indicators = (self.episode_starts[step + 1] * self.episode_fails[step + 1]) + \
+                                ((1 - self.episode_starts[step + 1]) * (1 - self.episode_fails[step + 1]) * indicators)
+            gamma = indicators * next_non_terminal * self.gamma_fail + (1 - indicators) * next_non_terminal * self.gamma
+            
+            delta = self.rewards[step] + gamma * next_values * next_non_terminal - self.values[step]
+            last_gae_lam = delta + gamma * self.gae_lambda * next_non_terminal * last_gae_lam
             self.advantages[step] = last_gae_lam
 
         self.returns = self.advantages + self.values
@@ -226,6 +232,7 @@ class RolloutBuffer(BaseBuffer):
         episode_start: np.ndarray,
         value: th.Tensor,
         log_prob: th.Tensor,
+        episode_fail: th.Tensor,
     ) -> None:
         if len(log_prob.shape) == 0:
             # Reshape 0-d tensor to avoid error
@@ -243,6 +250,7 @@ class RolloutBuffer(BaseBuffer):
         self.actions[self.pos] = np.array(action).copy()
         self.rewards[self.pos] = np.array(reward).copy()
         self.episode_starts[self.pos] = np.array(episode_start).copy()
+        self.episode_fails[self.pos] = np.array(episode_fail).copy()
         self.values[self.pos] = value.clone().cpu().numpy().flatten()
         self.log_probs[self.pos] = log_prob.clone().cpu().numpy()
         
@@ -302,14 +310,17 @@ class Temp_RolloutBuffer(BaseBuffer):
         device: Union[th.device, str] = "auto",
         gae_lambda: float = 1,
         gamma: float = 0.99,
+        gamma_fail: float = 0.9,
         n_envs: int = 1,
     ):
 
         super().__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
         self.gae_lambda = gae_lambda
         self.gamma = gamma
+        self.gamma_fail = gamma_fail
         self.observations, self.actions, self.rewards, self.advantages = None, None, None, None
         self.returns, self.episode_starts, self.values, self.log_probs = None, None, None, None
+        self.episode_fails = None
         self.generator_ready = False
         self.reset()
 
@@ -320,6 +331,7 @@ class Temp_RolloutBuffer(BaseBuffer):
         self.rewards = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.returns = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.episode_starts = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
+        self.episode_fails = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.values = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.log_probs = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.advantages = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
@@ -330,23 +342,26 @@ class Temp_RolloutBuffer(BaseBuffer):
         self.generator_ready = False
         super().reset()
 
-    def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray) -> None:
+    def compute_returns_and_advantage(self, last_values: th.Tensor, dones: np.ndarray, fails: np.ndarray) -> None:
         
         last_values = last_values.clone().cpu().numpy().flatten()
         last_gae_lam = 0
         
         for step in reversed(range(self.buffer_size)):
 
-            # for the last step inside the buffer, which could be done or not, we should determine them seperately
             if step == self.buffer_size - 1:
                 next_non_terminal = 1.0 - dones
                 next_values = last_values
+                indicators = fails
             else:
                 next_non_terminal = 1.0 - self.episode_starts[step + 1]
                 next_values = self.values[step + 1]
-
-            delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
-            last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+                indicators = (self.episode_starts[step + 1] * self.episode_fails[step + 1]) + \
+                                ((1 - self.episode_starts[step + 1]) * (1 - self.episode_fails[step + 1]) * indicators)
+            gamma = indicators * next_non_terminal * self.gamma_fail + (1 - indicators) * next_non_terminal * self.gamma
+            
+            delta = self.rewards[step] + gamma * next_values * next_non_terminal - self.values[step]
+            last_gae_lam = delta + gamma * self.gae_lambda * next_non_terminal * last_gae_lam
             self.advantages[step] = last_gae_lam
 
         self.returns = self.advantages + self.values
@@ -361,6 +376,7 @@ class Temp_RolloutBuffer(BaseBuffer):
         log_prob: th.Tensor,
         t_1_obs: th.Tensor,
         t_2_obs: th.Tensor,
+        episode_fail: np.ndarray,
     ) -> None:
         if len(log_prob.shape) == 0:
             # Reshape 0-d tensor to avoid error
@@ -378,6 +394,7 @@ class Temp_RolloutBuffer(BaseBuffer):
         self.actions[self.pos] = np.array(action).copy()
         self.rewards[self.pos] = np.array(reward).copy()
         self.episode_starts[self.pos] = np.array(episode_start).copy()
+        self.episode_fails[self.pos] = np.array(episode_fail).copy()
         self.values[self.pos] = value.clone().cpu().numpy().flatten()
         self.log_probs[self.pos] = log_prob.clone().cpu().numpy()
         

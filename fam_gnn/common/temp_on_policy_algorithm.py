@@ -78,6 +78,7 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
         self.success_episode_num = deque(maxlen=100)
         self.reach_with_collision = deque(maxlen=100)
 
+        self._last_episode_fails = np.ones((self.env.num_envs,), dtype=bool)
         if _init_setup_model:
             self._setup_model()
 
@@ -116,6 +117,7 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
 
         self.t_1_obs = np.zeros((self.n_envs, self.observation_space.shape[0]))
         self.t_2_obs = np.zeros((self.n_envs, self.observation_space.shape[0]))
+
     def collect_rollouts(
         self,
         env: VecEnv,
@@ -199,17 +201,18 @@ class Temp_OnPolicyAlgorithm(BaseAlgorithm):
                     # Seperate for test and debug
                     self.t_1_obs[idx] = np.zeros((1, self.observation_space.shape[0]))
                     self.t_2_obs[idx] = np.zeros((1, self.observation_space.shape[0]))
-            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs, self.t_1_obs, self.t_2_obs)
+            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs, self.t_1_obs, self.t_2_obs, self._last_episode_fails)
             self.t_2_obs = self.t_1_obs # s_t_2
             self.t_1_obs = self._last_obs # s_t_1
             self._last_obs = new_obs # s_t
             self._last_episode_starts = dones
+            self._last_episode_fails = np.array([info['Collision'] for info in infos])
 
         with th.no_grad():
             # Compute value for the last timestep
             values = self.policy.predict_values(obs_as_tensor(new_obs, self.device), temp_1, temp_2)
 
-        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
+        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones, fails=self._last_episode_fails)
 
         callback.on_rollout_end()
 

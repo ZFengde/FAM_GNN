@@ -78,6 +78,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         self.success_episode_num = deque(maxlen=100)
         self.reach_with_collision = deque(maxlen=100)
 
+        self._last_episode_fails = np.ones((self.env.num_envs,), dtype=bool)
         if _init_setup_model:
             self._setup_model()
 
@@ -192,15 +193,16 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                             terminal_value = self.policy.predict_values(terminal_obs)
                         rewards[idx] += self.gamma * terminal_value[0]
                         
-            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs)
+            rollout_buffer.add(self._last_obs, actions, rewards, self._last_episode_starts, values, log_probs, self._last_episode_fails) # so here is the done in s_t
             self._last_obs = new_obs
             self._last_episode_starts = dones
+            self._last_episode_fails = np.array([info['Collision'] for info in infos])
 
         with th.no_grad():
             # Compute value for the last timestep
             values = self.policy.predict_values(obs_as_tensor(new_obs, self.device))
 
-        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones)
+        rollout_buffer.compute_returns_and_advantage(last_values=values, dones=dones, fails=self._last_episode_fails)
 
         callback.on_rollout_end()
 
