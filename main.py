@@ -82,8 +82,8 @@ def main(
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env_id', type=str, default='Turtlebot-v2') # 'Turtlebot-v2''Safexp-PointGoal1-v0'
-    parser.add_argument('--algo', type=str, default='Temp_GNN_PPO') 
+    parser.add_argument('--env_id', type=str, default='Turtlebot-v3') # 'Turtlebot-v2''Safexp-PointGoal1-v0'
+    parser.add_argument('--algo', type=str, default='GNN_PPO') 
     parser.add_argument('--policy_type', type=str, default='MlpPolicy')
     parser.add_argument('--n_envs', type=int, default=4)
     parser.add_argument('--iter_num', type=int, default=500) # Total_timestep = iter_num * n_envs * n_steps, here is 2000 * 4 * 20480 = 1.2e7
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=5)
     parser.add_argument('--indicator', type=int, default=None)
-    parser.add_argument('--gnn_type', type=str, default='temp_fam_rel_gcn') 
+    parser.add_argument('--gnn_type', type=str, default='fam_rel_gcn') 
     # fam_gnn, fam_gnn_noatte, gat, rel_gcn, fam_rel_gcn | temp_fam_gnn, temp_fam_rel_gcn
     parser.add_argument('--early_stop', action='store_true') # if no action, or said default if False, otherwise it's True
     args = parser.parse_args()
