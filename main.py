@@ -33,8 +33,15 @@ def main(
 		if indicator == 4:
 			algo_name = 'Temp_GNN_PPO'
 			gnn_which = 'temp_fam_rel_gcn'
-		log_name = algo_name + gnn_which
-		algo = eval('fam_gnn.'+algo_name)
+		if indicator == 5:
+			algo_name = 'PPO'
+			gnn_which = None
+		if 'GNN' in algo_name:
+			algo = eval('fam_gnn.'+algo_name)
+			log_name = algo_name + gnn_which
+		else:
+			algo = eval('fam_gnn.'+algo_name)
+			log_name = algo_name
 	else:
 		algo_name = algo
 		log_name = algo_name
@@ -95,7 +102,7 @@ if __name__ == '__main__':
     # fam_gnn, fam_gnn_noatte, gat, rel_gcn, fam_rel_gcn | temp_fam_gnn, temp_fam_rel_gcn
     parser.add_argument('--early_stop', action='store_true') # if no action, or said default if False, otherwise it's True
     args = parser.parse_args()
-    
+	
     main(
 	    args.env_id, 
 		args.algo, 
