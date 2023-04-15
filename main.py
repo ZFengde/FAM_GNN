@@ -111,7 +111,6 @@ if __name__ == '__main__':
     # fam_gnn, fam_gnn_noatte, gat, rel_gcn, fam_rel_gcn | temp_fam_gnn, temp_fam_rel_gcn
     parser.add_argument('--early_stop', action='store_true') # if no action, or said default if False, otherwise it's True
     args = parser.parse_args()
-    args.indicator = 1
 
     main(
 	    args.env_id, 
