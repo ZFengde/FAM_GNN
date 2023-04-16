@@ -168,8 +168,8 @@ class FAM_GNN(nn.Module):
         
         # Attention mechanism
         attention = self.ante_layer(g, feat, etypes) 
-        x = th.tanh(self.layer1(g, feat, etypes, ntypes, attention))
-        x = th.tanh(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
+        x = th.relu(self.layer1(g, feat, etypes, ntypes, attention))
+        x = th.relu(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
         # here we take robot, target, and a compressed obstacle info
         x = th.stack((x[0], x[1], th.max(th.softmax(x[2:], dim=0), dim=0).values, th.min(th.softmax(x[2:], dim=0), dim=0).values, th.mean(th.softmax(x[2:], dim=0), dim=0)), dim=0)
         # x = x[0].unsqueeze(0) # only take robot node
