@@ -17,8 +17,7 @@ def main(
 		net_arch_dim, 
 		obstacle_num, 
 		gnn_type, 
-		early_stop,
-		indicator):
+		early_stop):
 
 	# # archived algorithms based indicators
 	# if indicator:
@@ -62,14 +61,15 @@ def main(
 
 	if 'Turtlebot' in env_id:
 		# env_kwargs = {'obstacle_num': obstacle_num, 'use_gui': True}
-		env_kwargs = {'obstacle_num': obstacle_num, 'indicator': indicator}
+		# env_kwargs = {'obstacle_num': obstacle_num, 'indicator': indicator}
+		env_kwargs = {'obstacle_num': obstacle_num}
 	else:
 		env_kwargs = None
 
 	env = make_vec_env(env_id, n_envs=n_envs, vec_env_cls=SubprocVecEnv, env_kwargs=env_kwargs)
 	# make experiment directory
-	logdir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(indicator)}/logs/{int(time.time())}/"
-	modeldir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(indicator)}/models/{int(time.time())}/"
+	logdir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(seed)}/logs/{int(time.time())}/"
+	modeldir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(seed)}/models/{int(time.time())}/"
 
 	if not os.path.exists(modeldir):
 		os.makedirs(modeldir)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=7)
-    parser.add_argument('--indicator', type=int, default=1)
+    # parser.add_argument('--indicator', type=int, default=1)
     parser.add_argument('--gnn_type', type=str, default='fam_gnn') 
     # fam_gnn, fam_gnn_noatte, gat, rel_gcn, fam_rel_gcn | temp_fam_gnn, temp_fam_rel_gcn
     parser.add_argument('--early_stop', action='store_true') # if no action, or said default if False, otherwise it's True
@@ -122,5 +122,4 @@ if __name__ == '__main__':
 		args.net_arch_dim,
 		args.obstacle_num,
 		args.gnn_type,
-		args.early_stop,
-		args.indicator,)
+		args.early_stop,)
