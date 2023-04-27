@@ -62,7 +62,8 @@ def main(
 
 	if 'Turtlebot' in env_id:
 		# env_kwargs = {'obstacle_num': obstacle_num, 'use_gui': True}
-		env_kwargs = {'obstacle_num': obstacle_num, 'indicator': indicator}
+		# env_kwargs = {'obstacle_num': obstacle_num, 'indicator': indicator}
+		env_kwargs = {'obstacle_num': obstacle_num}
 	else:
 		env_kwargs = None
 

@@ -171,9 +171,7 @@ class FAM_GNN(nn.Module):
         x = th.relu(self.layer1(g, feat, etypes, ntypes, attention))
         x = th.relu(self.layer2(g, x, etypes, ntypes, attention)) # node_num, batch, out_dim
         # here we take robot, target, and a compressed obstacle info
-        x = th.stack((x[0], x[1], th.max(th.softmax(x[2:], dim=0), dim=0).values, th.min(th.softmax(x[2:], dim=0), dim=0).values, th.mean(th.softmax(x[2:], dim=0), dim=0)), dim=0)
-        # x = x[0].unsqueeze(0) # only take robot node
-        # x = th.stack((x[0], x[1]), dim=0) # take robot and target node
+        x = th.stack((x[0], x[1], th.mean(x[2:], dim=0), th.max(x[2:], dim=0).values, th.min(x[2:], dim=0).values), dim=0)
         return x
 
 class FAM_GNNLayer_noatte(nn.Module): # using antecedants to update node features
