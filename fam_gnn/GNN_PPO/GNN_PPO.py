@@ -22,7 +22,7 @@ class GNN_PPO(OnPolicyAlgorithm):
         self,
         policy: Union[str, Type[ActorCriticPolicy]],
         env: Union[GymEnv, str],
-        learning_rate: Union[float, Schedule] = 3e-4,
+        learning_rate: Union[float, Schedule] = 1e-3,
         n_steps: int = 20480,
         batch_size: int = 640,
         n_epochs: int = 10,
