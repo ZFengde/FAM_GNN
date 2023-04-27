@@ -69,8 +69,8 @@ def main(
 
 	env = make_vec_env(env_id, n_envs=n_envs, vec_env_cls=SubprocVecEnv, env_kwargs=env_kwargs)
 	# make experiment directory
-	logdir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(indicator)}/logs/{int(time.time())}/"
-	modeldir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(indicator)}/models/{int(time.time())}/"
+	logdir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(seed)}/logs/{int(time.time())}/"
+	modeldir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(seed)}/models/{int(time.time())}/"
 
 	if not os.path.exists(modeldir):
 		os.makedirs(modeldir)
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('--algo', type=str, default='GNN_PPO') 
     parser.add_argument('--policy_type', type=str, default='MlpPolicy')
     parser.add_argument('--n_envs', type=int, default=4)
-    parser.add_argument('--iter_num', type=int, default=500) # Total_timestep = iter_num * n_envs * n_steps, here is 2000 * 4 * 20480 = 1.2e7
+    parser.add_argument('--iter_num', type=int, default=700) # Total_timestep = iter_num * n_envs * n_steps, here is 2000 * 4 * 20480 = 1.2e7
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=7)
@@ -124,4 +124,4 @@ if __name__ == '__main__':
 		args.obstacle_num,
 		args.gnn_type,
 		args.early_stop,
-		args.indicator,)
+		args.indicator)
