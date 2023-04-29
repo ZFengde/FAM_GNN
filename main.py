@@ -62,8 +62,8 @@ def main(
 
 	if 'Turtlebot' in env_id:
 		# env_kwargs = {'obstacle_num': obstacle_num, 'use_gui': True}
-		# env_kwargs = {'obstacle_num': obstacle_num, 'indicator': indicator}
-		env_kwargs = {'obstacle_num': obstacle_num}
+		env_kwargs = {'obstacle_num': obstacle_num, 'indicator': indicator}
+		# env_kwargs = {'obstacle_num': obstacle_num}
 	else:
 		env_kwargs = None
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     parser.add_argument('--policy_type', type=str, default='MlpPolicy')
     parser.add_argument('--n_envs', type=int, default=4)
     parser.add_argument('--iter_num', type=int, default=700) # Total_timestep = iter_num * n_envs * n_steps, here is 2000 * 4 * 20480 = 1.2e7
-    parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--seed', type=int, default=30)
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=7)
     parser.add_argument('--indicator', type=int, default=1)
