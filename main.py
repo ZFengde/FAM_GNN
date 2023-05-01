@@ -78,7 +78,7 @@ def main(
 		os.makedirs(logdir)
 
 	if early_stop:
-		target_kl = 0.03
+		target_kl = 0.02
 	else:
 		target_kl = None
 	model = algo(
