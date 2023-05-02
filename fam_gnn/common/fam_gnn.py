@@ -58,7 +58,7 @@ class TSFuzzyLayer(nn.Module): # -> attention, truth_value
 
     def forward(self, g, feat, etypes):
         g.srcdata['h'] = feat # 9, batch, input_dim 
-        self.priority = th.cat((th.where(etypes==0)[0], th.where(etypes==4)[0]))
+        self.priority = th.cat((th.where(etypes==0)[0], th.where(etypes==1)[0]))
         g.apply_edges(self.edge_func)
         # g.update_all(self.edge_func, fn.sum('attention', 'h'))
         
