@@ -223,7 +223,7 @@ class ActorCriticPolicy(BasePolicy):
             self.gnn_input_dim = 6
             self.gnn_h_dim = 10
             self.gnn_out_dim = 8
-            self.num_rels = 4
+            self.num_rels = 7
             self.num_ntypes = 3
             self.gnn = FAM_GNN(input_dim=self.gnn_input_dim, 
                                 h_dim=self.gnn_h_dim, 

@@ -262,23 +262,36 @@ def graph_and_types(node_num): # -> graph, edge_types
             2: target-obstacle, 3:obstacle-obstacle
             '''
             # robot-target
-            if (i==0 and j==1) or (i==1 and j==0):
+            if (i==0 and j==1) :
                 edge_types.append(0)
 
-            # robot-obstacle
-            elif (i==0 and 2<=j) or (2<=i and j==0):
+            # target-robot
+            elif (i==1 and j==0):
                 edge_types.append(1)
 
-            # target-obstacle
-            elif (i==1 and 2<=j) or (2<=i and j==1):
+            # robot-obstacle
+            elif (i==0 and 2<=j):
                 edge_types.append(2)
 
+            # obstacle-robot
+            elif (2<=i and j==0):
+                edge_types.append(3)
+
+            # target-obstacle
+            elif (i==1 and 2<=j):
+                edge_types.append(4)
+
+            # obstacle-target
+            elif (2<=i and j==1):
+                edge_types.append(5)
+                
             # obstacle-obstacle
             else:
-                edge_types.append(3)
+                edge_types.append(6)
             
             ID_indicator += 1
         
+    
     node_types = np.zeros(node_num) + 2 
     node_types[0] = 0
     node_types[1] = 1
