@@ -69,8 +69,8 @@ def main(
 
 	env = make_vec_env(env_id, n_envs=n_envs, vec_env_cls=SubprocVecEnv, env_kwargs=env_kwargs)
 	# make experiment directory
-	logdir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(indicator)}/logs/{int(time.time())}/"
-	modeldir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(indicator)}/models/{int(time.time())}/"
+	logdir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(seed)}/logs/{int(time.time())}/"
+	modeldir = f"{env_id}+n_obstalces={obstacle_num}/{log_name+str(seed)}/models/{int(time.time())}/"
 
 	if not os.path.exists(modeldir):
 		os.makedirs(modeldir)
