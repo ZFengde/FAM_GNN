@@ -17,7 +17,6 @@ from stable_baselines3.common.type_aliases import GymEnv, MaybeCallback, Schedul
 from stable_baselines3.common.utils import obs_as_tensor, safe_mean
 from stable_baselines3.common.vec_env import VecEnv
 
-os.system("taskset -p 0xFFFFFFFF %d" % os.getpid())
 class OnPolicyAlgorithm(BaseAlgorithm):
 
     def __init__(

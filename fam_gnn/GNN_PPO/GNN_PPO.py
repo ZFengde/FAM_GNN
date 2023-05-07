@@ -281,7 +281,6 @@ class GNN_PPO(OnPolicyAlgorithm):
         )
 
     def test(self, env):
-        
         while True:
             obs = env.reset()
             ep_reward = 0
