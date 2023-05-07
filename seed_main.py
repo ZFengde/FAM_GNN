@@ -20,38 +20,6 @@ def main(
 		early_stop,
 		indicator):
 
-	# # archived algorithms based indicators
-	# if indicator:
-	# 	if indicator == 1:
-	# 		algo_name = 'GNN_PPO'
-	# 		gnn_which = 'fam_gnn'
-	# 	if indicator == 2:
-	# 		algo_name = 'GNN_PPO'
-	# 		gnn_which = 'fam_rel_gcn'
-	# 	if indicator == 3:
-	# 		algo_name = 'Temp_GNN_PPO'
-	# 		gnn_which = 'temp_fam_gnn'
-	# 	if indicator == 4:
-	# 		algo_name = 'Temp_GNN_PPO'
-	# 		gnn_which = 'temp_fam_rel_gcn'
-	# 	if indicator == 5:
-	# 		algo_name = 'PPO'
-	# 		gnn_which = None
-	# 	if 'GNN' in algo_name:
-	# 		algo = eval('fam_gnn.'+algo_name)
-	# 		log_name = algo_name + gnn_which
-	# 	else:
-	# 		algo = eval('fam_gnn.'+algo_name)
-	# 		log_name = algo_name
-	# else:
-	# 	algo_name = algo
-	# 	log_name = algo_name
-	# 	gnn_which = None
-	# 	if 'GNN' in algo:
-	# 		gnn_which = gnn_type
-	# 		log_name += gnn_type
-	# 	algo = eval('fam_gnn.'+algo)
-
 	algo_name = algo
 	log_name = algo_name
 	gnn_which = None
@@ -61,9 +29,7 @@ def main(
 	algo = eval('fam_gnn.'+algo)
 
 	if 'Turtlebot' in env_id:
-		# env_kwargs = {'obstacle_num': obstacle_num, 'use_gui': True}
-		env_kwargs = {'obstacle_num': obstacle_num, 'indicator': indicator}
-		# env_kwargs = {'obstacle_num': obstacle_num}
+		env_kwargs = {'obstacle_num': obstacle_num}
 	else:
 		env_kwargs = None
 
@@ -103,7 +69,7 @@ if __name__ == '__main__':
     parser.add_argument('--algo', type=str, default='PPO') 
     parser.add_argument('--policy_type', type=str, default='MlpPolicy')
     parser.add_argument('--n_envs', type=int, default=4)
-    parser.add_argument('--iter_num', type=int, default=700) # Total_timestep = iter_num * n_envs * n_steps, here is 2000 * 4 * 20480 = 1.2e7
+    parser.add_argument('--iter_num', type=int, default=300) # Total_timestep = iter_num * n_envs * n_steps, here is 2000 * 4 * 20480 = 1.2e7
     parser.add_argument('--seed', type=int, default=30)
     parser.add_argument('--net_arch_dim', type=int, default=64)
     parser.add_argument('--obstacle_num', type=int, default=7)
