@@ -289,7 +289,6 @@ class GNN_PPO(OnPolicyAlgorithm):
             while True:
                 env.render()
                 with th.no_grad():
-                    # in this form to avoid auto clip
                     action = self.policy._predict(th.as_tensor(obs))
                     clipped_action = th.clip(action, -1, 1)
                 obs, reward, done, info = env.step(clipped_action)
