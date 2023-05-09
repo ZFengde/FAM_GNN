@@ -280,8 +280,10 @@ class GNN_PPO(OnPolicyAlgorithm):
             reset_num_timesteps=reset_num_timesteps,
         )
 
-    def test(self, env):
-        while True:
+    def test(self, env, episode_num):
+        success_episode_num = []
+        average_returns = []
+        for i in range(episode_num):
             obs = env.reset()
             ep_reward = 0
             ep_len = 0
@@ -292,7 +294,13 @@ class GNN_PPO(OnPolicyAlgorithm):
                     clipped_action = th.clip(action, -1, 1)
                 obs, reward, done, info = env.step(clipped_action)
                 ep_reward += reward
-                ep_len += 1
                 if done:
-                    print(ep_len, ep_reward, info)
+                    print(i)
+                    average_returns.append(ep_reward)
+                    if info['Success'] and not info['Collision']:
+                        success_episode_num.append(1)
+                    else:
+                        success_episode_num.append(0)
                     break
+        print('success rate:', np.mean(success_episode_num))
+        print('average returns:', np.mean(average_returns))

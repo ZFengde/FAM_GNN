@@ -281,23 +281,26 @@ class PPO(OnPolicyAlgorithm):
             reset_num_timesteps=reset_num_timesteps,
         )
 
-    def test(self, env):
-        
-        while True:
+    def test(self, env, episode_num):
+        success_episode_num = []
+        average_returns = []
+        for i in range(episode_num):
             obs = env.reset()
             ep_reward = 0
             ep_len = 0
             while True:
                 env.render()
                 with th.no_grad():
-                    action = self.policy.predict(obs)[0]
-
-                # clipped_action = action
-                clipped_action = np.clip(action, -1, 1)
+                    action = self.policy._predict(th.as_tensor(obs))
+                    clipped_action = th.clip(action, -1, 1)
                 obs, reward, done, info = env.step(clipped_action)
-
                 ep_reward += reward
-                ep_len += 1
                 if done:
-                    print(ep_len, ep_reward)
+                    average_returns.append(ep_reward)
+                    if info['Success'] and not info['Collision']:
+                        success_episode_num.append(1)
+                    else:
+                        success_episode_num.append(0)
                     break
+        print('success rate:', np.mean(success_episode_num))
+        print('average returns:', np.mean(average_returns))
